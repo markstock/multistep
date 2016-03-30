@@ -9,9 +9,12 @@ using namespace Eigen;
 /*
  * Compile with
  *
- * g++ -o verlet3 -std=c++11 -I/usr/include/eigen3 verlet3.cpp
+ * g++ -o verlet4 -std=c++11 -I/usr/include/eigen3 verlet4.cpp
  *
  * Copyright 2016 Mark J. Stock, markjstock@gmail.com
+ *
+ * Compute "true" solution once, using RK4, and compare all results to it
+ *
  */
 
 
@@ -279,6 +282,7 @@ public:
     for (int i=0; i<100; ++i) {
       rk.stepForward(-0.01 * _dt);
     }
+    //rk.stepForward(-1.0 * _dt);
     pos[2] = rk.getPosition();
     acc[1] = g.getAccel(pos[2]);
 
@@ -286,12 +290,14 @@ public:
     for (int i=0; i<100; ++i) {
       rk.stepForward(-0.01 * _dt);
     }
+    //rk.stepForward(-1.0 * _dt);
     pos[1] = rk.getPosition();
     acc[0] = g.getAccel(pos[1]);
 
     for (int i=0; i<100; ++i) {
       rk.stepForward(-0.01 * _dt);
     }
+    //rk.stepForward(-1.0 * _dt);
     pos[0] = rk.getPosition();
   }
   
@@ -342,11 +348,11 @@ int main () {
   //SineWave s(1000);
 
   // iterate a gravitational n-body system for a few steps
-  NBodyGrav s(10);
+  NBodyGrav s(100);
 
   double time = 0.0;
-  double dt = 0.05;
   int maxSteps = 1000;
+  double dt = 10.0 / maxSteps;
   cout << "Running " << maxSteps << " steps at dt= " << dt << endl;
 
   // initialize integrators
@@ -390,19 +396,24 @@ int main () {
   cout << "VerletStock solution: " << sSolution.segment(0,4).transpose() << endl;
 
   // find the "exact" solution?
-  dt *= 0.1;
-  maxSteps *= 10;
+  maxSteps = 10000;
+  dt = 10.0 / maxSteps;
 
   // find the "exact" solution for RK4 - use this as the exact solution for everyone
   time = 0.0;
   RK4 ra(s);
-  cout << "'Exact' solution is from running " << maxSteps << " steps at dt= " << dt << endl;
+  cout << "'Exact' solution is from running " << maxSteps << " steps of RK4 at dt= " << dt << endl;
   for (int i=0; i<maxSteps; ++i) {
     ra.stepForward(dt);
     time += dt;
   }
-  cout << "Error in RK4 is " << ra.getError(rSolution) << endl;
 
+  cout << "Error in Euler is " << ra.getError(eSolution) << endl;
+  cout << "Error in RK4 is " << ra.getError(rSolution) << endl;
+  cout << "Error in Verlet is " << ra.getError(vSolution) << endl;
+  cout << "Error in Verlet-Stock is " << ra.getError(sSolution) << endl;
+
+/*
   // for Euler
   time = 0.0;
   Euler ea(s);
@@ -429,15 +440,7 @@ int main () {
     time += dt;
   }
   cout << "Error in Verlet-Stock is " << vsa.getError(sSolution) << endl;
-
-
-  // how does each perform? this assumes that we have a correct solution!
-  //ArrayXd solution = s.value(time);
-  //cout << "Theoretical solution is:" << endl;
-  //cout << time << " " << solution.transpose() << endl;
-  //cout << "Error in Euler is " << e.getError(solution) << endl;
-  //cout << "Error in Verlet is " << ve.getError(solution) << endl;
-  //cout << "Error in Verlet-Stock is " << ves.getError(solution) << endl;
+*/
 
   exit(0);
 }
