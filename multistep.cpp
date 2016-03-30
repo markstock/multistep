@@ -11,10 +11,10 @@ using namespace Eigen;
  *
  * Copyright 2016 Mark J. Stock, markjstock@gmail.com
  *
- * v8: Refactoring systems into classes
+ * v9: Dynamical state now has vector of derivatives
  *
  * Compile and run with:
- * g++ -o verlet -Ofast -std=c++11 -I/usr/include/eigen3 verlet8.cpp && ./verlet
+ * g++ -o verlet -Ofast -std=c++11 -I/usr/include/eigen3 verlet9.cpp && ./verlet
  */
 
 
@@ -23,30 +23,83 @@ using namespace Eigen;
  */
 class DynamicState {
 public:
-  DynamicState(const int _level, const int _step) :
+  // delegating constructor chain
+  DynamicState() :
+    DynamicState(1)
+  {}
+
+  DynamicState(const int _highestDeriv) :
+    DynamicState(_highestDeriv, 0, 0)
+  {}
+
+  DynamicState(const int _highestDeriv, const int _level, const int _step) :
+    x(1+_highestDeriv, ArrayXd()),
     level(_level), step(_step)
   {
-    // do not initialize the arrays yet, wait for later
+    // do not initialize the arrays now, wait for later
   };
 
-  ~DynamicState() {};
+  // copy constructor works just like it's supposed to
+
+  // like a copy constructor, but advances step and zeros highest derivatives
+  DynamicState stepHelper() {
+    // make the new object here
+    DynamicState next(x.size(), level, step);
+    // copy all derivatives except for the highest
+    for (int i=0; i<x.size(); i++) {
+      next.x[i] = x[i];
+    }
+    // highest derivative array is left as zeros
+    next.x[x.size()] = ArrayXd::Zero(x[0].size());
+    // finally, advance the step by one
+    next.step++;
+    return next;
+  }
 
   double getFloatStep () {
     return step * pow(2.0, level);
   }
 
-//private:
+  ArrayXd getPos(void) {
+    //cout << "DynamicState::getPos " << x.size() << endl;
+    //cout << "DynamicState::getPos " << x.size() << "  " << x[0].size() << endl;
+    //cout << "DynamicState::getPos " << x.size() << "  " << x[0].size() << "  " << x[0].segment(0,4).transpose() << endl;
+    try {
+      return x[0];
+    } catch (exception& e) {
+      cout << "Standard exception: " << e.what() << endl;
+    }
+    //if (x.size() > 0) return x[0];
+    //else return ArrayXd::Zero(1);
+  }
+
+  ArrayXd getVel(void) {
+    //if (x.size() > 1) return x[1];
+    //else return ArrayXd::Zero(1);
+    try {
+      return x[1];
+    } catch (exception& e) {
+      cout << "Standard exception: " << e.what() << endl;
+    }
+  }
+
+  ArrayXd getAcc(void) {
+    //if (x.size() > 2) return x[2];
+    //else return ArrayXd::Zero(1);
+    try {
+      return x[2];
+    } catch (exception& e) {
+      cout << "Standard exception: " << e.what() << endl;
+    }
+  }
+
   // level 0 is at base dt, level 1 is at 2*dt, level -1 at 0.5*dt
   int level;
   // step is time step within that level
   int step;
-  // the three arrays: value, first and second derivatives
-  ArrayXd pos;
-  ArrayXd vel;
-  ArrayXd acc;
-  // ultimately, we want to store a value and an arbitrary number of derivatives
+  // store a value and an arbitrary number of derivatives
   // x[0] is position, x[1] velocity, x[2] acceleration, x[3] jerk, etc.
-  //vector<DynamicState> x;
+  vector<ArrayXd> x;
 };
 
 
@@ -66,9 +119,13 @@ public:
     numVars(_num)
   {}
 
+  // number of derivatives in the dynamic state
+  virtual int getNumDerivs(void) = 0;
+
+  // return the initial state
+  virtual DynamicState getInit(void) = 0;
+
   virtual bool hasAccel(void) = 0;
-  virtual ArrayXd initPosit(void) = 0;
-  virtual ArrayXd initVeloc(void) = 0;
   virtual ArrayXd getHighestDeriv(const ArrayXd pos) = 0;
 
 protected:
@@ -85,22 +142,19 @@ class VelocitySystem : public DynamicalSystem {
 public:
   VelocitySystem(const int _num) :
     DynamicalSystem(_num),
-    ic(DynamicState(0, 0))
-  {}
+    ic(DynamicState(1))
+  {
+    ic.step = 0;
+  }
 
-  virtual ArrayXd getHighestDeriv(const ArrayXd pos) = 0;
-
-  bool hasAccel(void) { return false; }
+  // number of derivatives in the dynamic state
+  int getNumDerivs(void) { return 1; }
 
   // return the initial state
-  ArrayXd initPosit() {
-    return ic.pos;
-  }
+  DynamicState getInit() { return ic; }
 
-  ArrayXd initVeloc() {
-    cout << "No initial velocity in a VelocitySystem" << endl;
-    return ArrayXd::Zero(numVars);
-  }
+  bool hasAccel(void) { return false; }
+  //virtual ArrayXd getHighestDeriv(const ArrayXd pos) = 0;
 
 protected:
   // must define and store initial state
@@ -116,21 +170,19 @@ class AccelerationSystem : public DynamicalSystem {
 public:
   AccelerationSystem(const int _num) :
     DynamicalSystem(_num),
-    ic(DynamicState(0, 0))
-  {}
+    ic(DynamicState(2))
+  {
+    ic.step = 0;
+  }
 
-  virtual ArrayXd getHighestDeriv(const ArrayXd pos) = 0;
-
-  bool hasAccel(void) { return true; }
+  // number of derivatives in the dynamic state
+  int getNumDerivs(void) { return 2; }
 
   // return the initial state
-  ArrayXd initPosit() {
-    return ic.pos;
-  }
+  DynamicState getInit() { return ic; }
 
-  ArrayXd initVeloc() {
-    return ic.vel;
-  }
+  bool hasAccel(void) { return true; }
+  //virtual ArrayXd getHighestDeriv(const ArrayXd pos) = 0;
 
 protected:
   // must define and store initial state
@@ -155,7 +207,7 @@ public:
     radiusSquared = radiusSquared.square();
 
     // store initial conditions in case we want to reuse this
-    ic.pos = 10.0 * ArrayXd::Random(numVars);
+    ic.x[0] = 10.0 * ArrayXd::Random(numVars);
   };
 
   // perform n-body acceleration calculation; uses position and mass and radius squared
@@ -210,8 +262,9 @@ public:
     radiusSquared = radiusSquared.square();
 
     // store initial conditions in case we want to reuse this
-    ic.pos = 10.0 * ArrayXd::Random(numVars);
-    ic.vel = 1.0 * ArrayXd::Random(numVars);
+    ic.x[0] = 10.0 * ArrayXd::Random(numVars);
+    ic.x[1] = 1.0 * ArrayXd::Random(numVars);
+    //cout << "NBodyGrav::NBodyGrav " << ic.x[0].segment(0,4).transpose() << endl;
   };
 
   // perform n-body acceleration calculation; uses position and mass and radius squared
@@ -255,23 +308,59 @@ class ForwardIntegrator {
 public:
   ForwardIntegrator (DynamicalSystem& _system, const int _nstates, const int _level) :
     g(_system),
-    s(_nstates, DynamicState(_level, 0))
+    s(_nstates, DynamicState(_system.getNumDerivs(), _level, 0))
   {
     // set the zero state
-    s[0].step = 0;
-    s[0].pos = g.initPosit();
-    s[0].vel = g.initVeloc();
+    s[0] = g.getInit();
   }
 
   // derived classes must define this method
   virtual void stepForward (const double _dt) = 0;
 
+  // building block of many algorithms --- will only modify start if we solve for highest derivs
+  DynamicState EulerStep(DynamicState initial, DynamicState derivs, const double _dt) {
+
+    // create the state with copies of the lower derivatives
+    DynamicState next = initial.stepHelper();
+
+    // find the highest derivative - nope
+    //initial.x[g.getNumDerivs()] = g.getHighestDeriv(start.x[0]);
+
+    // step all lower derivatives forward
+    for (int nd=0; nd<g.getNumDerivs(); nd++) {
+      double factor = 1.0;
+      for (int d=nd; d>=0; d--) {
+        factor *= _dt / (nd-d+1);
+        next.x[d] += factor * derivs.x[nd+1];
+      }
+    }
+
+    // find the highest derivative - nope, again
+    //next.x[g.getNumDerivs()] = g.getHighestDeriv(next.x[0]);
+
+    // return the state
+    return next;
+  }
+
+  DynamicState EulerStep(DynamicState start, const double _dt) {
+    // call the general routine
+    return EulerStep(start, start, _dt);
+  }
+
   ArrayXd getPosition () {
-    return s[0].pos;
+    return s[0].getPos();
   }
 
   ArrayXd getVelocity () {
-    return s[0].vel;
+    return s[0].getVel();
+  }
+
+  ArrayXd getDeriv (const int deriv) {
+    try {
+      return s[0].x[deriv];
+    } catch (exception& e) {
+      cout << "Standard exception: " << e.what() << endl;
+    }
   }
 
   double getError (const ArrayXd _trueSolution) {
@@ -329,23 +418,46 @@ public:
   
   // always takes a position and velocity and turns it into a new position and velocity
   void stepForward (const double _dt) {
-    // ask the system to find its new highest-level derivative
-    if (g.hasAccel()) {
-      s[0].acc = g.getHighestDeriv(s[0].pos);
-    } else {
-      s[0].vel = g.getHighestDeriv(s[0].pos);
-    }
+    //int numDeriv = g.getNumDerivs();
 
-    // add a new state to the head
-    DynamicState newHead(s[0].level, s[0].step++);
+    // ask the system to find its new highest-level derivative
+    s[0].x[g.getNumDerivs()] = g.getHighestDeriv(s[0].x[0]);
+
+    // from that state, project forward
+    DynamicState newHead = EulerStep(s[0], _dt);
+
+    // add the new state to the head
     s.insert(s.begin(), newHead);
 
     // perform forward integration
-    s[0].pos = s[1].pos + _dt*s[1].vel;
-    if (g.hasAccel()) {
-      s[0].pos += 0.5*_dt*_dt*s[1].acc;
-      s[0].vel = s[1].vel + _dt*s[1].acc;
+    // s[1].x[0]  means  state t-1, 0th derivative
+
+    /*
+    for (int deriv=0; deriv<numDeriv; deriv++) {
+      //s[0].x[deriv] = s[1].x[deriv];
+      double factor = 1.0;
+      for (int d=deriv; d>=0; d--) {
+        factor *= _dt / (deriv-d+1);
+        s[0].x[d] += factor * s[1].x[deriv+1];
+      }
     }
+    */
+
+    /*
+    s[0].x[0] = s[1].x[0];
+    s[0].x[0] += _dt*s[1].x[1];
+    if (g.hasAccel()) {
+      s[0].x[1] = s[1].x[1];
+      s[0].x[1] += _dt    *s[1].x[2];
+      s[0].x[0] += _dt*_dt*s[1].x[2] / 2.0;
+    }
+    if (g.hasJerk()) {
+      s[0].x[2] = s[1].x[2];
+      s[0].x[2] += _dt        *s[1].x[3];
+      s[0].x[1] += _dt*_dt    *s[1].x[3] / 2.0;
+      s[0].x[0] += _dt*_dt*_dt*s[1].x[3] / 6.0;
+    }
+    */
 
     // get rid of oldest state
     s.pop_back();
@@ -358,7 +470,7 @@ public:
  */
 class RK2 : public MultistageIntegrator {
 public:
-  RK2 (AccelerationSystem& _system, const int _level) :
+  RK2 (DynamicalSystem& _system, const int _level) :
     MultistageIntegrator(_system, _level)
   {
     // initial conditions set in parent constructor
@@ -366,30 +478,60 @@ public:
   
   // Generalizable to Heun's or Ralson's Methods
   void stepForward (const double _dt) {
+
     // alpha:error at 800 steps are  0.5:1.77703e-05  1.0:1.78663e-05  2/3:1.77534e-05
     const double alpha = 2.0/3.0;
 
     // ask the system to find its new highest-level derivative
-    s[0].acc = g.getHighestDeriv(s[0].pos);
-
-    // add a new state to the head
-    DynamicState newHead(s[0].level, s[0].step++);
-    s.insert(s.begin(), newHead);
+    int numDeriv = g.getNumDerivs();
+    s[0].x[numDeriv] = g.getHighestDeriv(s[0].x[0]);
 
     // first step: set stage 1 to the last solution (now s[1])
 
     // second step: project forward a half step using that acceleration
-    const double hdt = alpha*_dt;
-    DynamicState stage2(0,0);
-    stage2.pos = s[1].pos + hdt*s[1].vel;
-    stage2.acc = g.getHighestDeriv(stage2.pos);
-    stage2.vel = s[1].vel + hdt*s[1].acc;
+    //const double hdt = alpha*_dt;
+    //DynamicState stage2(numDeriv,0,0);
+
+    // from that state, project forward
+    DynamicState stage2 = EulerStep(s[0], alpha*_dt);
+    stage2.x[numDeriv] = g.getHighestDeriv(stage2.x[0]);
+
+    /*
+    // if vel:
+    stage2.x[0] = s[0].x[0] + hdt*s[0].x[1];
+    stage2.x[1] = g.getHighestDeriv(stage2.x[0]);
+    */
+
+    // if accel:
+    //stage2.x[0] = s[0].x[0] + hdt*s[0].x[1];
+    // adding the last term halves the error!
+    //stage2.x[0] = s[0].x[0] + hdt*s[0].x[1] + hdt*hdt*s[0].x[2]/2.0;
+    //stage2.x[1] = s[0].x[1] + hdt*s[0].x[2];
+    //stage2.x[2] = g.getHighestDeriv(stage2.x[0]);
+
+    /*
+    // if jerk:
+    stage2.x[0] = s[0].x[0] + hdt*s[0].x[1] + hdt*hdt*s[0].x[2]/2.0 + hdt*hdt*hdt*s[0].x[3]/6.0;
+    stage2.x[1] = s[0].x[1] + hdt*s[0].x[2] + hdt*hdt*s[0].x[3]/2.0;
+    stage2.x[2] = s[0].x[2] + hdt*s[0].x[3];
+    stage2.x[3] = g.getHighestDeriv(stage2.x[0]);
+    */
+
+    // add a new state to the head
+    //DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
+    DynamicState newHead = s[0].stepHelper();
 
     // position updates via weighted average velocity
     const double oo2a = 1.0 / (2.0*alpha);
-    s[0].pos = s[1].pos + _dt * ((1.0-oo2a)*s[1].vel + oo2a*stage2.vel);
-    // velocity updates via weighted average acceleration
-    s[0].vel = s[1].vel + _dt * ((1.0-oo2a)*s[1].acc + oo2a*stage2.acc);
+    for (int d=0; d<numDeriv; d++) {
+      newHead.x[d] += _dt * ((1.0-oo2a)*s[0].x[d+1] + oo2a*stage2.x[d+1]);
+      //s[0].x[d] = s[1].x[d] + _dt * ((1.0-oo2a)*s[1].x[d+1] + oo2a*stage2.x[d+1]);
+    }
+    //s[0].x[0] = s[1].x[0] + _dt * ((1.0-oo2a)*s[1].x[1] + oo2a*stage2.x[1]);
+    //s[0].x[1] = s[1].x[1] + _dt * ((1.0-oo2a)*s[1].x[2] + oo2a*stage2.x[2]);
+
+    // add a new state to the head
+    s.insert(s.begin(), newHead);
 
     // get rid of oldest state
     s.pop_back();
@@ -412,37 +554,72 @@ public:
   // Note that this could be improved using the 3/8 rule, see wikipedia
   void stepForward (const double _dt) {
     // ask the system to find its new highest-level derivative
-    s[0].acc = g.getHighestDeriv(s[0].pos);
+    //cout << "in RK4::stepForward " << s[0].x[0].segment(0,4).transpose() << endl;
 
-    // add a new state to the head
-    DynamicState newHead(s[0].level, s[0].step++);
-    s.insert(s.begin(), newHead);
+    // solve for top derivative at current state
+    const int nd = g.getNumDerivs();
+    s[0].x[nd] = g.getHighestDeriv(s[0].x[0]);
+
+    // first step: set stage 1 to the last solution (now s[1])
+    const double hdt = 0.5*_dt;
+
+    // This new way of doing the calculation DOES NOT HELP!
+    // second step: project forward a half step using that acceleration
+    //DynamicState stage2 = EulerStep(s[0], hdt);
+    //stage2.x[nd] = g.getHighestDeriv(stage2.x[0]);
+
+    // third step: project forward a half step from initial using the new acceleration
+    //DynamicState stage3 = EulerStep(s[0], stage2, hdt);
+    //stage3.x[nd] = g.getHighestDeriv(stage3.x[0]);
+
+    // fourth step: project forward a full step from initial using the newest acceleration
+    //DynamicState stage4 = EulerStep(s[0], stage3, _dt);
+    //stage4.x[nd] = g.getHighestDeriv(stage4.x[0]);
 
     // first step: set stage 1 to the last solution (now s[1])
 
     // second step: project forward a half step using that acceleration
-    const double hdt = 0.5*_dt;
-    DynamicState stage2(0,0);
-    stage2.pos = s[1].pos + hdt*s[1].vel;
-    stage2.acc = g.getHighestDeriv(stage2.pos);
-    stage2.vel = s[1].vel + hdt*s[1].acc;
+    DynamicState stage2 = s[0].stepHelper();
+    for (int d=0; d<nd; d++) stage2.x[d] += hdt*s[0].x[d+1];
+    //for (int d=0; d<nd; d++) stage2.x[d] = s[0].x[d] + hdt*s[0].x[d+1];
+    //stage2.x[0] = s[0].x[0] + hdt*s[0].x[1];
+    //stage2.x[1] = s[0].x[1] + hdt*s[0].x[2];
+    stage2.x[nd] = g.getHighestDeriv(stage2.x[0]);
 
     // third step: project forward a half step from initial using the new acceleration
-    DynamicState stage3(0,0);
-    stage3.pos = s[1].pos + hdt*stage2.vel;
-    stage3.acc = g.getHighestDeriv(stage3.pos);
-    stage3.vel = s[1].vel + hdt*stage2.acc;
+    DynamicState stage3 = s[0].stepHelper();
+    for (int d=0; d<nd; d++) stage3.x[d] += hdt*stage2.x[d+1];
+    //DynamicState stage3(nd,0,0);
+    //stage3.x[0] = s[0].x[0] + hdt*stage2.x[1];
+    //stage3.x[1] = s[0].x[1] + hdt*stage2.x[2];
+    stage3.x[nd] = g.getHighestDeriv(stage3.x[0]);
 
     // fourth step: project forward a full step from initial using the newest acceleration
-    DynamicState stage4(0,0);
-    stage4.pos = s[1].pos + _dt*stage3.vel;
-    stage4.acc = g.getHighestDeriv(stage4.pos);
-    stage4.vel = s[1].vel + _dt*stage3.acc;
+    DynamicState stage4 = s[0].stepHelper();
+    for (int d=0; d<nd; d++) stage4.x[d] += _dt*stage3.x[d+1];
+    //DynamicState stage4(nd,0,0);
+    //stage4.x[0] = s[0].x[0] + _dt*stage3.x[1];
+    //stage4.x[1] = s[0].x[1] + _dt*stage3.x[2];
+    stage4.x[nd] = g.getHighestDeriv(stage4.x[0]);
+
+    // add a new state to the head
+    //DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
+    DynamicState newHead = s[0].stepHelper();
+
+    for (int d=0; d<nd; d++) {
+      newHead.x[d] += _dt * (s[0].x[d+1] + 2.0*stage2.x[d+1] + 2.0*stage3.x[d+1] + stage4.x[d+1]) / 6.0;
+    }
 
     // position updates via weighted average velocity
-    s[0].pos = s[1].pos + _dt * (s[1].vel + 2.0*stage2.vel + 2.0*stage3.vel + stage4.vel) / 6.0;
+    //s[0].x[0] = s[1].x[0] + _dt * (s[1].x[1] + 2.0*stage2.x[1] + 2.0*stage3.x[1] + stage4.x[1]) / 6.0;
     // velocity updates via weighted average acceleration
-    s[0].vel = s[1].vel + _dt * (s[1].acc + 2.0*stage2.acc + 2.0*stage3.acc + stage4.acc) / 6.0;
+    //s[0].x[1] = s[1].x[1] + _dt * (s[1].x[2] + 2.0*stage2.x[2] + 2.0*stage3.x[2] + stage4.x[2]) / 6.0;
+
+    // add a new state to the head
+    s.insert(s.begin(), newHead);
+
+    // get rid of oldest state
+    s.pop_back();
   }
 };
 
@@ -458,12 +635,14 @@ public:
     // zero state set in parent constructor
     // set the previous states here
     RK4 r(g,0);
+    //cout << "in MultistepIntegrator::MultistepIntegrator " << r.getPosition().segment(0,4).transpose() << endl;
     for (int istep=1; istep<_nsteps; ++istep) {
       for (int i=0; i<100; ++i) r.stepForward(-0.01 * _dt);
       s[istep].step = -istep;
-      s[istep].pos = r.getPosition();
-      s[istep].vel = r.getVelocity();
-      s[istep].acc = g.getHighestDeriv(s[istep].pos);
+      for (int deriv=0; deriv<g.getNumDerivs(); deriv++) {
+        s[istep].x[deriv] = r.getDeriv(deriv);
+      }
+      s[istep].x[g.getNumDerivs()] = g.getHighestDeriv(s[istep].x[0]);
     }
   }
 };
@@ -474,7 +653,7 @@ public:
  */
 class AB2 : public MultistepIntegrator {
 public:
-  AB2 (AccelerationSystem& _system, const int _level, const double _dt) :
+  AB2 (DynamicalSystem& _system, const int _level, const double _dt) :
     MultistepIntegrator(2, _system, _level, _dt)
   {}
   
@@ -483,17 +662,24 @@ public:
     // assert that we have at least two states in the history
     //static_assert(s.size() >= 2, "State vector does not have enough entries");
     // assert that this dt matches the previous dt
+    const int numDerivs = g.getNumDerivs();
 
     // ask the system to find its new highest-level derivative
-    s[0].acc = g.getHighestDeriv(s[0].pos);
+    s[0].x[numDerivs] = g.getHighestDeriv(s[0].x[0]);
 
     // add a new state to the head
-    DynamicState newHead(s[0].level, s[0].step++);
+    DynamicState newHead = s[0].stepHelper();
     s.insert(s.begin(), newHead);
 
+    // perform forward integration: AB2 for first one down, AM2 for all others
+    s[0].x[numDerivs-1] = s[1].x[numDerivs-1] + 0.5 * _dt * (3.0*s[1].x[numDerivs] - s[2].x[numDerivs]);
+    for (int deriv=numDerivs-1; deriv>0; deriv--) {
+      s[0].x[deriv-1] += 0.5 * _dt * (s[0].x[deriv] + s[1].x[deriv]);
+    }
+
     // perform forward integration: AB2 for velocity, AM2 for position
-    s[0].vel = s[1].vel + 0.5 * _dt * (3.0*s[1].acc - s[2].acc);
-    s[0].pos = s[1].pos + 0.5 * _dt * (s[0].vel + s[1].vel);
+    //s[0].x[1] = s[1].x[1] + 0.5 * _dt * (3.0*s[1].x[2] - s[2].x[2]);
+    //s[0].x[0] = s[1].x[0] + 0.5 * _dt * (s[0].x[1] + s[1].x[1]);
 
     // get rid of oldest state
     s.pop_back();
@@ -506,21 +692,29 @@ public:
  */
 class AB4 : public MultistepIntegrator {
 public:
-  AB4 (AccelerationSystem& _system, const int _level, const double _dt) :
+  AB4 (DynamicalSystem& _system, const int _level, const double _dt) :
     MultistepIntegrator(4, _system, _level, _dt)
   {}
 
   // always takes a position and velocity and turns it into a new position and velocity
   void stepForward (const double _dt) {
-    s[0].acc = g.getHighestDeriv(s[0].pos);
+    const int nd = g.getNumDerivs();
+
+    s[0].x[nd] = g.getHighestDeriv(s[0].x[0]);
 
     // add a new one to the head
-    DynamicState newHead(s[0].level, s[0].step++);
+    DynamicState newHead = s[0].stepHelper();
     s.insert(s.begin(), newHead);
 
+    // perform forward integration: AB4 for first, AM4 for all lower-order derivatives
+    s[0].x[nd-1] += _dt * (55.0*s[1].x[nd] - 59.0*s[2].x[nd] + 37.0*s[3].x[nd] - 9.0*s[4].x[nd]) / 24.0;
+    for (int deriv=nd-1; deriv>0; deriv--) {
+      s[0].x[deriv-1] += _dt * (9.0*s[0].x[deriv] + 19.0*s[1].x[deriv] - 5.0*s[2].x[deriv] + s[3].x[deriv]) / 24.0;
+    }
+
     // perform forward integration: AB4 for velocity, AM4 for position
-    s[0].vel = s[1].vel +  _dt * (55.0*s[1].acc - 59.0*s[2].acc + 37.0*s[3].acc - 9.0*s[4].acc) / 24.0;
-    s[0].pos = s[1].pos +  _dt * (9.0*s[0].vel + 19.0*s[1].vel - 5.0*s[2].vel + s[3].vel) / 24.0;
+    //s[0].x[1] = s[1].x[1] +  _dt * (55.0*s[1].x[2] - 59.0*s[2].x[2] + 37.0*s[3].x[2] - 9.0*s[4].x[2]) / 24.0;
+    //s[0].x[0] = s[1].x[0] +  _dt * (9.0*s[0].x[1] + 19.0*s[1].x[1] - 5.0*s[2].x[1] + s[3].x[1]) / 24.0;
 
     // get rid of oldest
     s.pop_back();
@@ -533,21 +727,29 @@ public:
  */
 class AB5 : public MultistepIntegrator {
 public:
-  AB5 (AccelerationSystem& _system, const int _level, const double _dt) :
+  AB5 (DynamicalSystem& _system, const int _level, const double _dt) :
     MultistepIntegrator(5, _system, _level, _dt)
   {}
 
   // always takes a position and velocity and turns it into a new position and velocity
   void stepForward (const double _dt) {
-    s[0].acc = g.getHighestDeriv(s[0].pos);
+    const int nd = g.getNumDerivs();
+
+    s[0].x[nd] = g.getHighestDeriv(s[0].x[0]);
 
     // add a new one to the head
-    DynamicState newHead(s[0].level, s[0].step++);
+    DynamicState newHead = s[0].stepHelper();
     s.insert(s.begin(), newHead);
 
+    // perform forward integration: AB5 for first, AM5 for all lower-order derivatives
+    s[0].x[nd-1] += _dt * (1901.0*s[1].x[nd] - 2774.0*s[2].x[nd] + 2616.0*s[3].x[nd] - 1274.0*s[4].x[nd] + 251.0*s[5].x[nd]) / 720.0;
+    for (int deriv=nd-1; deriv>0; deriv--) {
+      s[0].x[deriv-1] += _dt * (251.0*s[0].x[deriv] + 646.0*s[1].x[deriv] - 264.0*s[2].x[deriv] + 106.0*s[3].x[deriv] - 19.0*s[4].x[deriv]) / 720.0;
+    }
+
     // perform forward integration: AB5 for velocity, AM5 for position
-    s[0].vel = s[1].vel +  _dt * (1901.0*s[1].acc - 2774.0*s[2].acc + 2616.0*s[3].acc - 1274.0*s[4].acc + 251.0*s[5].acc) / 720.0;
-    s[0].pos = s[1].pos +  _dt * (251.0*s[0].vel + 646.0*s[1].vel - 264.0*s[2].vel + 106.0*s[3].vel - 19.0*s[4].vel) / 720.0;
+    //s[0].x[1] = s[1].x[1] +  _dt * (1901.0*s[1].x[2] - 2774.0*s[2].x[2] + 2616.0*s[3].x[2] - 1274.0*s[4].x[2] + 251.0*s[5].x[2]) / 720.0;
+    //s[0].x[0] = s[1].x[0] +  _dt * (251.0*s[0].x[1] + 646.0*s[1].x[1] - 264.0*s[2].x[1] + 106.0*s[3].x[1] - 19.0*s[4].x[1]) / 720.0;
 
     // get rid of oldest
     s.pop_back();
@@ -565,14 +767,14 @@ public:
   {}
   
   void stepForward (const double _dt) {
-    s[0].acc = g.getHighestDeriv(s[0].pos);
+    s[0].x[2] = g.getHighestDeriv(s[0].x[0]);
 
     // add a new one to the head
-    DynamicState newHead(s[0].level, s[0].step++);
+    DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
     s.insert(s.begin(), newHead);
 
     // perform forward integration
-    s[0].pos = 2.0*s[1].pos - s[2].pos +  _dt*_dt*s[1].acc;
+    s[0].x[0] = 2.0*s[1].x[0] - s[2].x[0] +  _dt*_dt*s[1].x[2];
 
     // get rid of oldest
     s.pop_back();
@@ -592,20 +794,20 @@ public:
   {}
 
   void stepForward (const double _dt) {
-    s[0].acc = g.getHighestDeriv(s[0].pos);
+    s[0].x[2] = g.getHighestDeriv(s[0].x[0]);
 
     // add a new one to the head
-    DynamicState newHead(s[0].level, s[0].step++);
+    DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
     s.insert(s.begin(), newHead);
 
     // perform forward integration
     // note precision problems that will arise when positions are subtracted!
     // maybe the velocity version will be more precise?
     // just adding the parentheses increases accuracy!
-    s[0].pos = s[3].pos + ((s[1].pos - s[4].pos)
-             + 0.25*_dt*_dt* ( 5.0*s[1].acc
-                              +2.0*s[2].acc
-                              +5.0*s[3].acc));
+    s[0].x[0] = s[3].x[0] + ((s[1].x[0] - s[4].x[0])
+             + 0.25*_dt*_dt* ( 5.0*s[1].x[2]
+                              +2.0*s[2].x[2]
+                              +5.0*s[3].x[2]));
 
     // get rid of oldest
     s.pop_back();
@@ -625,17 +827,17 @@ public:
   {}
   
   void stepForward (const double _dt) {
-    s[0].acc = g.getHighestDeriv(s[0].pos);
+    s[0].x[2] = g.getHighestDeriv(s[0].x[0]);
 
     // add a new one to the head
-    DynamicState newHead(s[0].level, s[0].step++);
+    DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
     s.insert(s.begin(), newHead);
 
     // perform forward integration
-    s[0].pos = 2.0*s[2].pos - s[4].pos
-             + (4.0*_dt*_dt/3.0) * ( s[1].acc
-                                    +s[2].acc
-                                    +s[3].acc);
+    s[0].x[0] = 2.0*s[2].x[0] - s[4].x[0]
+             + (4.0*_dt*_dt/3.0) * ( s[1].x[2]
+                                    +s[2].x[2]
+                                    +s[3].x[2]);
 
     // get rid of oldest
     s.pop_back();
@@ -655,25 +857,25 @@ public:
   {}
   
   void stepForward (const double _dt) {
-    s[0].acc = g.getHighestDeriv(s[0].pos);
+    s[0].x[2] = g.getHighestDeriv(s[0].x[0]);
 
     // add a new one to the head
-    DynamicState newHead(s[0].level, s[0].step++);
+    DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
     s.insert(s.begin(), newHead);
 
     // perform forward integration
     // first, use Adams Moulton to find the new velocity
     // NEED SOMETHING BETTER HERE!
-    //s[1].vel = s[2].vel
-    //         + (_dt/2.0)      * (     s[1].acc +     s[2].acc);
+    //s[1].x[1] = s[2].x[1]
+    //         + (_dt/2.0)      * (     s[1].x[2] +     s[2].x[2]);
     // then use the Hamming method to find the position
-    s[0].pos = s[1].pos
-             + (_dt/2.0)      * (    -s[1].vel + 3.0*s[2].vel)
-             + (_dt*_dt/12.0) * (17.0*s[1].acc + 7.0*s[2].acc);
+    s[0].x[0] = s[1].x[0]
+             + (_dt/2.0)      * (    -s[1].x[1] + 3.0*s[2].x[1])
+             + (_dt*_dt/12.0) * (17.0*s[1].x[2] + 7.0*s[2].x[2]);
     // this is horrible!
-    s[0].vel = (384.0/_dt)    * (     s[2].pos - s[1].pos)
-             + (1.0)          * (312.*s[1].vel + 73.*s[2].vel)
-             + (-1.0*_dt)     * (110.*s[1].acc + 8.0*s[2].acc);
+    s[0].x[1] = (384.0/_dt)    * (     s[2].x[0] - s[1].x[0])
+             + (1.0)          * (312.*s[1].x[1] + 73.*s[2].x[1])
+             + (-1.0*_dt)     * (110.*s[1].x[2] + 8.0*s[2].x[2]);
 
     // get rid of oldest
     s.pop_back();
@@ -696,20 +898,33 @@ int main () {
 
   // iterate a gravitational n-body system for a few steps
   NBodyGrav s(100);
-  NBodyVort2D vort(100);
-  Euler ev(vort,0);
+  //NBodyVort2D vort(100);
+  //Euler ev(vort,0);
 
   // find the "exact" solution for AB4 - use this as the exact solution for everyone
   double time = 0.0;
-  int maxSteps = 100000;
+  int maxSteps = 10000;
   double dt = 10.0 / maxSteps;
   AB5 exact(s,0,dt);
   cout << "'Exact' solution is from running " << maxSteps << " steps of AB5 at dt= " << dt << endl;
   for (int i=0; i<maxSteps; ++i) {
     exact.stepForward(dt);
-    ev.stepForward(dt);
+    //ev.stepForward(dt);
     time += dt;
   }
+
+  cout << "steps\t";
+  cout << "Euler\t\t";
+  cout << "RK2\t\t";
+  cout << "AB2\t\t";
+  cout << "Verlet\t\t";
+  cout << "RK4\t\t";
+  cout << "AB4\t\t";
+  cout << "Verlet4\t\t";
+  cout << "Ham416\t\t";
+  //cout << "Ham418\t\t";
+  cout << "AB5";
+  cout << endl;
 
   // integrate using the various methods
   for (maxSteps = 12; maxSteps < 15000; maxSteps *= 2) {
