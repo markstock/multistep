@@ -7,14 +7,14 @@ using namespace std;
 using namespace Eigen;
 
 /*
- * Compile with
- *
- * g++ -o verlet5 -Ofast -std=c++11 -I/usr/include/eigen3 verlet5.cpp
+ * Verlet - a program to test forward advection schemes
  *
  * Copyright 2016 Mark J. Stock, markjstock@gmail.com
  *
- * Attempt to use Richardson extrapolation to refine solution, so need state objects
+ * v6: Added two methods from Hamming, reorganized loops
  *
+ * Compile with:
+ * g++ -o verlet6 -Ofast -std=c++11 -I/usr/include/eigen3 verlet6.cpp
  */
 
 
@@ -83,24 +83,26 @@ public:
 
   // perform n-body acceleration calculation; uses position and mass and radius squared
   ArrayXd getAccel(ArrayXd pos) {
-    //cout << "pos in getAccel is " << pos.transpose() << endl;
     ArrayXd newVal = ArrayXd::Zero(3*num);
-    //cout << "newVal in getAccel is " << newVal.transpose() << endl;
-    for (int i=0; i<num; ++i) {
-      // new accelerations on particle i
-      Vector3d temp = pos.segment(3*i,3);
-      //cout << "  particle i is at " << temp.transpose() << endl;
-      Vector3d newAcc(0.0, 0.0, 0.0);
-      for (int j=0; j<num; ++j) {
-        // 20 flops
-        // the influence of particle j
-        //cout << "  particle j is at " << pos.segment(3*i,3).transpose() << endl;
-        Vector3d dx = pos.segment(3*j,3) - pos.segment(3*i,3);
-        double invdist = 1.0/(dx.norm()+radiusSquared(j));
-        newAcc += dx * (mass(j) * invdist * invdist * invdist);
-        //cout << "  influence of " << j << " on " << i << " is " << newAcc.transpose() << endl;
+
+    // evaluate using ispc-compiled subroutine
+    // pos, mass, radiusSquared --> newVal
+
+    // evaluate locally
+    if (true) {
+      for (int i=0; i<num; ++i) {
+        // new accelerations on particle i
+        Vector3d temp = pos.segment(3*i,3);
+        Vector3d newAcc(0.0, 0.0, 0.0);
+        for (int j=0; j<num; ++j) {
+          // 20 flops
+          // the influence of particle j
+          Vector3d dx = pos.segment(3*j,3) - pos.segment(3*i,3);
+          double invdist = 1.0/(dx.norm()+radiusSquared(j));
+          newAcc += dx * (mass(j) * invdist * invdist * invdist);
+        }
+        newVal.segment(3*i,3) = newAcc;
       }
-      newVal.segment(3*i,3) = newAcc;
     }
     return newVal;
   }
@@ -554,119 +556,155 @@ private:
 
 
 /*
+ * Hamming - pg 416
+ *
+ * A predictor using only accelerations and positions
+ */
+class Hamming416 {
+public:
+  Hamming416 (NBodyGrav& _gravSys, int _level, double _dt) :
+    g(_gravSys),
+    s(4, DynamicState(_level, 0))
+  {
+    s[0].step = 0;
+    s[1].step = -1;
+    s[2].step = -2;
+    s[3].step = -3;
+    // set initial conditions
+    s[0].pos = g.initPosit();
+    // and set the previous state
+    RK4 r(g,0);
+    for (int istep=1; istep<4; ++istep) {
+      for (int i=0; i<100; ++i) r.stepForward(-0.01 * _dt);
+      s[istep].pos = r.getPosition();
+      s[istep].acc = g.getAccel(s[istep].pos);
+    }
+  }
+  
+  ~Hamming416 () {};
+
+  void stepForward (const double _dt) {
+    s[0].acc = g.getAccel(s[0].pos);
+
+    // add a new one to the head
+    DynamicState newHead(s[0].level, s[0].step++);
+    s.insert(s.begin(), newHead);
+
+    // perform forward integration
+    s[0].pos = 2.0*s[2].pos - s[4].pos
+             + (4.0*_dt*_dt/3.0) * ( s[1].acc
+                                    +s[2].acc
+                                    +s[3].acc);
+
+    // get rid of oldest
+    s.pop_back();
+  }
+
+  ArrayXd getPosition () {
+    return s[0].pos;
+  }
+
+  double getError (ArrayXd _trueSolution) {
+    ArrayXd temp = _trueSolution-getPosition();
+    double normsq = temp.matrix().norm() / sqrt(temp.size());
+    return(normsq);
+  }
+
+private:
+  NBodyGrav& g;
+  vector<DynamicState> s;
+};
+
+
+/*
+ * Hamming - pg 418
+ *
+ * A predictor using accelerations, velocities, and positions
+ */
+class Hamming418 {
+public:
+  Hamming418 (NBodyGrav& _gravSys, int _level, double _dt) :
+    g(_gravSys),
+    s(2, DynamicState(_level, 0))
+  {
+    s[0].step = 0;
+    s[1].step = -1;
+    // set initial conditions
+    s[0].pos = g.initPosit();
+    s[0].vel = g.initVeloc();
+    // and set the previous state
+    RK4 r(g,0);
+    for (int istep=1; istep<2; ++istep) {
+      for (int i=0; i<100; ++i) r.stepForward(-0.01 * _dt);
+      s[istep].pos = r.getPosition();
+      s[istep].vel = r.getVelocity();
+      s[istep].acc = g.getAccel(s[istep].pos);
+    }
+  }
+  
+  ~Hamming418 () {};
+
+  void stepForward (const double _dt) {
+    s[0].acc = g.getAccel(s[0].pos);
+
+    // add a new one to the head
+    DynamicState newHead(s[0].level, s[0].step++);
+    s.insert(s.begin(), newHead);
+
+    // perform forward integration
+    // first, use Adams Moulton to find the new velocity
+    // NEED SOMETHING BETTER HERE!
+    //s[1].vel = s[2].vel
+    //         + (_dt/2.0)      * (     s[1].acc +     s[2].acc);
+    // then use the Hamming method to find the position
+    s[0].pos = s[1].pos
+             + (_dt/2.0)      * (    -s[1].vel + 3.0*s[2].vel)
+             + (_dt*_dt/12.0) * (17.0*s[1].acc + 7.0*s[2].acc);
+    // this is horrible!
+    s[0].vel = (384.0/_dt)    * (     s[2].pos - s[1].pos)
+             + (1.0)          * (312.*s[1].vel + 73.*s[2].vel)
+             + (-1.0*_dt)     * (110.*s[1].acc + 8.0*s[2].acc);
+
+    // get rid of oldest
+    s.pop_back();
+  }
+
+  ArrayXd getPosition () {
+    return s[0].pos;
+  }
+
+  double getError (ArrayXd _trueSolution) {
+    ArrayXd temp = _trueSolution-getPosition();
+    double normsq = temp.matrix().norm() / sqrt(temp.size());
+    return(normsq);
+  }
+
+private:
+  NBodyGrav& g;
+  vector<DynamicState> s;
+};
+
+
+/*
  * Try Bulirsch-Stoer algorithm
  *
  * https://en.wikipedia.org/wiki/Bulirsch-Stoer_algorithm
 */
 
 
-
-
 // Perform Richardson Extrapolation by creating multiple temporal resolution levels automatically?
-
 
 
 // Create a system and an integrator
 int main () {
 
-  // iterate a sine wave for a few steps
-  //SineWave s(1000);
-
   // iterate a gravitational n-body system for a few steps
   NBodyGrav s(100);
 
-  double time = 0.0;
-  int maxSteps = 12800;
-  double dt = 10.0 / maxSteps;
-  cout << "Running " << maxSteps << " steps at dt= " << dt << endl;
-
-  // initialize integrators
-  Euler e(s,0);
-  RK2 r2(s,0);
-  AB2 a(s,0,dt);
-  Verlet ve(s,0,dt);
-  RK4 r(s,0);
-  AB4 ab(s,0,dt);
-  VerletStock ves(s,0,dt);
-  //cout << time;
-  //cout << " " << e.getPosition().transpose();
-
-  //cout << " " << ve.getPosition();
-
-  //VerletStock ves(s.value(time), s.value(time-dt), s.value(time-2.0*dt),
-  //                s.value(time-3.0*dt), s.accel(time-dt), s.accel(time-2.0*dt));
-  //cout << " " << ves.getPosition();
-  //cout << endl;
-
-  // integrate forward
-  for (int i=0; i<maxSteps; ++i) {
-
-    // take the forward step
-    e.stepForward(dt);
-    if (i%2 == 0) r2.stepForward(2.0*dt);
-    a.stepForward(dt);
-    ve.stepForward(dt);
-    if (i%4 == 0) r.stepForward(4.0*dt);
-    ab.stepForward(dt);
-    ves.stepForward(dt);
-    time += dt;
-
-    // write out the new position 
-    //cout << time << " " << e.getPosition().transpose();
-    //cout << " " << ve.getPosition();
-    //cout << " " << ves.getPosition()
-    //cout << endl;
-  }
-  ArrayXd eSolution = e.getPosition();
-  cout << "Euler solution: " << eSolution.segment(0,4).transpose() << endl;
-
-  ArrayXd r2Solution = r2.getPosition();
-  cout << "RK2 solution: " << r2Solution.segment(0,4).transpose() << endl;
-
-  ArrayXd aSolution = a.getPosition();
-  cout << "ABM2 solution: " << aSolution.segment(0,4).transpose() << endl;
-
-  ArrayXd vSolution = ve.getPosition();
-  cout << "Verlet solution: " << vSolution.segment(0,4).transpose() << endl;
-
-  ArrayXd rSolution = r.getPosition();
-  cout << "RK4 solution: " << rSolution.segment(0,4).transpose() << endl;
-
-  ArrayXd abSolution = ab.getPosition();
-  cout << "ABM4 solution: " << abSolution.segment(0,4).transpose() << endl;
-
-  ArrayXd sSolution = ves.getPosition();
-  cout << "VerletStock solution: " << sSolution.segment(0,4).transpose() << endl;
-
-  // find the "exact" solution?
-  maxSteps = 100000;
-  dt = 10.0 / maxSteps;
-
-  // find the "exact" solution for Euler - use this as the exact solution for everyone
-/*
-  time = 0.0;
-  Euler exact(s,0);
-  cout << "'Exact' solution is from running " << maxSteps << " steps of Euler at dt= " << dt << endl;
-  for (int i=0; i<maxSteps; ++i) {
-    exact.stepForward(dt);
-    time += dt;
-  }
-  cout << "Error in Euler is " << exact.getError(eSolution) << endl;
-*/
-
-  // find the "exact" solution for RK4 - use this as the exact solution for everyone
-/*
-  time = 0.0;
-  RK4 exact(s,0);
-  cout << "'Exact' solution is from running " << maxSteps << " steps of RK4 at dt= " << dt << endl;
-  for (int i=0; i<maxSteps; ++i) {
-    exact.stepForward(dt);
-    time += dt;
-  }
-*/
-
   // find the "exact" solution for AB4 - use this as the exact solution for everyone
-  time = 0.0;
+  double time = 0.0;
+  int maxSteps = 100000;
+  double dt = 10.0 / maxSteps;
   AB4 exact(s,0,dt);
   cout << "'Exact' solution is from running " << maxSteps << " steps of AB4 at dt= " << dt << endl;
   for (int i=0; i<maxSteps; ++i) {
@@ -674,53 +712,81 @@ int main () {
     time += dt;
   }
 
-  // find the "exact" solution for Verlet-Stock - use this as the exact solution for everyone
-/*
-  time = 0.0;
-  VerletStock exact(s,0,dt);
-  cout << "'Exact' solution is from running " << maxSteps << " steps of Verlet-Stock at dt= " << dt << endl;
-  for (int i=0; i<maxSteps; ++i) {
-    exact.stepForward(dt);
-    time += dt;
-  }
-*/
+  // integrate using the various methods
+  for (maxSteps = 12; maxSteps < 15000; maxSteps *= 2) {
+    dt = 10.0 / maxSteps;
+    //cout << "Running " << maxSteps << " steps at dt= " << dt << endl;
+    time = 0.0;
 
-  cout << "Error in Euler is " << exact.getError(eSolution) << endl;
-  cout << "Error in RK2 is " << exact.getError(r2Solution) << endl;
-  cout << "Error in ABM2 is " << exact.getError(aSolution) << endl;
-  cout << "Error in Verlet is " << exact.getError(vSolution) << endl;
-  cout << "Error in RK4 is " << exact.getError(rSolution) << endl;
-  cout << "Error in ABM4 is " << exact.getError(abSolution) << endl;
-  cout << "Error in Verlet-Stock is " << exact.getError(sSolution) << endl;
+    // initialize integrators
+    Euler e(s,0);
+    RK2 r2(s,0);
+    AB2 a(s,0,dt);
+    Verlet ve(s,0,dt);
+    RK4 r(s,0);
+    AB4 ab(s,0,dt);
+    VerletStock ves(s,0,dt);
+    Hamming416 h6(s,0,dt);
+    Hamming418 h8(s,0,dt);
 
-/*
-  // for Euler
-  time = 0.0;
-  Euler ea(s);
-  for (int i=0; i<maxSteps; ++i) {
-    ea.stepForward(dt);
-    time += dt;
-  }
-  cout << "Error in Euler is " << ea.getError(eSolution) << endl;
+    for (int i=0; i<maxSteps; ++i) {
 
-  // find the "exact" solution for Verlet
-  time = 0.0;
-  Verlet va(s, dt);
-  for (int i=0; i<maxSteps; ++i) {
-    va.stepForward(dt);
-    time += dt;
-  }
-  cout << "Error in Verlet is " << va.getError(vSolution) << endl;
+      // take the forward step
+      e.stepForward(dt);
+      if (i%2 == 0) r2.stepForward(2.0*dt);
+      a.stepForward(dt);
+      ve.stepForward(dt);
+      if (i%4 == 0) r.stepForward(4.0*dt);
+      ab.stepForward(dt);
+      ves.stepForward(dt);
+      h6.stepForward(dt);
+      h8.stepForward(dt);
+      time += dt;
 
-  // find the "exact" solution for Verlet-Stock
-  time = 0.0;
-  VerletStock vsa(s, dt);
-  for (int i=0; i<maxSteps; ++i) {
-    vsa.stepForward(dt);
-    time += dt;
+    }
+
+    ArrayXd eSolution = e.getPosition();
+    //cout << "  Euler solution: " << eSolution.segment(0,4).transpose() << endl;
+    //cout << "  Error in Euler is " << exact.getError(eSolution) << endl;
+
+    ArrayXd r2Solution = r2.getPosition();
+    //cout << "  RK2 solution: " << r2Solution.segment(0,4).transpose() << endl;
+    //cout << "  Error in RK2 is " << exact.getError(r2Solution) << endl;
+
+    ArrayXd aSolution = a.getPosition();
+    //cout << "  ABM2 solution: " << aSolution.segment(0,4).transpose() << endl;
+    //cout << "  Error in ABM2 is " << exact.getError(aSolution) << endl;
+
+    ArrayXd vSolution = ve.getPosition();
+    //cout << "  Verlet solution: " << vSolution.segment(0,4).transpose() << endl;
+    //cout << "  Error in Verlet is " << exact.getError(vSolution) << endl;
+
+    ArrayXd rSolution = r.getPosition();
+    //cout << "  RK4 solution: " << rSolution.segment(0,4).transpose() << endl;
+    //cout << "  Error in RK4 is " << exact.getError(rSolution) << endl;
+
+    ArrayXd abSolution = ab.getPosition();
+    //cout << "  ABM4 solution: " << abSolution.segment(0,4).transpose() << endl;
+    //cout << "  Error in ABM4 is " << exact.getError(abSolution) << endl;
+
+    ArrayXd sSolution = ves.getPosition();
+    //cout << "  VerletStock solution: " << sSolution.segment(0,4).transpose() << endl;
+    //cout << "  Error in Verlet-Stock is " << exact.getError(sSolution) << endl;
+
+    ArrayXd h6Solution = h6.getPosition();
+    ArrayXd h8Solution = h8.getPosition();
+
+    cout << maxSteps << "\t" << exact.getError(eSolution);
+    cout << "\t" << exact.getError(r2Solution);
+    cout << "\t" << exact.getError(aSolution);
+    cout << "\t" << exact.getError(vSolution);
+    cout << "\t" << exact.getError(rSolution);
+    cout << "\t" << exact.getError(abSolution);
+    cout << "\t" << exact.getError(sSolution);
+    cout << "\t" << exact.getError(h6Solution);
+    cout << "\t" << exact.getError(h8Solution);
+    cout << endl;
   }
-  cout << "Error in Verlet-Stock is " << vsa.getError(sSolution) << endl;
-*/
 
   exit(0);
 }
