@@ -14,7 +14,7 @@ using namespace Eigen;
  * v9: Dynamical state now has vector of derivatives
  *
  * Compile and run with:
- * g++ -o verlet -Ofast -std=c++11 -I/usr/include/eigen3 verlet9.cpp && ./verlet
+ * g++ -o runmultistep -Ofast -std=c++11 -I/usr/include/eigen3 multistep.cpp && ./runmultistep
  */
 
 
