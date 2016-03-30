@@ -11,10 +11,10 @@ using namespace Eigen;
  *
  * Copyright 2016 Mark J. Stock, markjstock@gmail.com
  *
- * v7: Refactoring integrators into classes
+ * v8: Refactoring systems into classes
  *
  * Compile and run with:
- * g++ -o verlet -Ofast -std=c++11 -I/usr/include/eigen3 verlet7.cpp && ./verlet
+ * g++ -o verlet -Ofast -std=c++11 -I/usr/include/eigen3 verlet8.cpp && ./verlet
  */
 
 
@@ -53,42 +53,170 @@ public:
 /*
  * Must make a virtual superclass for integrable systems
  */
-//virtual class IntegrableSystem {
-//class SineWave : public IntegrableSystem {
-//class NBodyGrav : public IntegrableSystem {
+//class SineWave : public AccelerationSystem {
+//class NBodyGrav : public AccelerationSystem {
+//class NBodyVort : public VelocitySystem {
 
+/*
+ * DynamicalSystem - generalized class for dynamical systems
+ */
+class DynamicalSystem {
+public:
+  DynamicalSystem(const int _num) :
+    numVars(_num)
+  {}
+
+  virtual bool hasAccel(void) = 0;
+  virtual ArrayXd initPosit(void) = 0;
+  virtual ArrayXd initVeloc(void) = 0;
+  virtual ArrayXd getHighestDeriv(const ArrayXd pos) = 0;
+
+protected:
+  // number of equations in the system
+  int numVars;
+};
+
+
+/*
+ * VelocitySystem - a dynamic system driven by velocities
+ *                  like vortex methods; states have x, x'
+ */
+class VelocitySystem : public DynamicalSystem {
+public:
+  VelocitySystem(const int _num) :
+    DynamicalSystem(_num),
+    ic(DynamicState(0, 0))
+  {}
+
+  virtual ArrayXd getHighestDeriv(const ArrayXd pos) = 0;
+
+  bool hasAccel(void) { return false; }
+
+  // return the initial state
+  ArrayXd initPosit() {
+    return ic.pos;
+  }
+
+  ArrayXd initVeloc() {
+    cout << "No initial velocity in a VelocitySystem" << endl;
+    return ArrayXd::Zero(numVars);
+  }
+
+protected:
+  // must define and store initial state
+  DynamicState ic;
+};
+
+
+/*
+ * AccelerationSystem - a dynamic system driven by accelerations
+ *                      like gravitation; states have x, x', x"
+ */
+class AccelerationSystem : public DynamicalSystem {
+public:
+  AccelerationSystem(const int _num) :
+    DynamicalSystem(_num),
+    ic(DynamicState(0, 0))
+  {}
+
+  virtual ArrayXd getHighestDeriv(const ArrayXd pos) = 0;
+
+  bool hasAccel(void) { return true; }
+
+  // return the initial state
+  ArrayXd initPosit() {
+    return ic.pos;
+  }
+
+  ArrayXd initVeloc() {
+    return ic.vel;
+  }
+
+protected:
+  // must define and store initial state
+  DynamicState ic;
+};
+
+
+/*
+ * A 2D vortex system with constant strengths, radii
+ */
+class NBodyVort2D : public VelocitySystem {
+public:
+  NBodyVort2D(const int _num) :
+    num(_num),
+    VelocitySystem(2*_num)
+  {
+    // num is how many bodies
+
+    // we store the unchanging properties here
+    circ = ArrayXd::Random(num) / (2.0*num);
+    radiusSquared = 0.2 + 0.1 * ArrayXd::Random(num);
+    radiusSquared = radiusSquared.square();
+
+    // store initial conditions in case we want to reuse this
+    ic.pos = 10.0 * ArrayXd::Random(numVars);
+  };
+
+  // perform n-body acceleration calculation; uses position and mass and radius squared
+  ArrayXd getHighestDeriv(const ArrayXd pos) {
+    ArrayXd newVels = ArrayXd::Zero(numVars);
+
+    // evaluate using ispc-compiled subroutine
+    // pos, circ, radiusSquared --> newVels
+
+    // evaluate locally
+    if (true) {
+      for (int i=0; i<num; ++i) {
+        // new velocities on particle i
+        Vector2d thisVel(0.0, 0.0);
+        for (int j=0; j<num; ++j) {
+          // 20 flops
+          // the influence of particle j
+          Vector2d dx = pos.segment(2*j,2) - pos.segment(2*i,2);
+          double invdist = 1.0/(dx.norm()+radiusSquared(j));
+          double factor = circ(j) * invdist * invdist;
+          thisVel[0] -= dx[1] * factor;
+          thisVel[1] += dx[0] * factor;
+        }
+        newVels.segment(2*i,2) = thisVel;
+      }
+    }
+    return newVels;
+  }
+
+private:
+  // number of bodies
+  int num;
+  // these values are constant in time and unique to this system
+  ArrayXd circ;
+  ArrayXd radiusSquared;
+};
 
 /*
  * A gravitational n-body system
  */
-class NBodyGrav {
+class NBodyGrav : public AccelerationSystem {
 public:
-  NBodyGrav(const int _num) {
-    // this is how many bodies
-    num = _num;
+  NBodyGrav(const int _num) :
+    num(_num),
+    AccelerationSystem(3*_num)
+  {
+    // num is how many bodies
+
     // we store the unchanging properties here
     mass = (2.0 + ArrayXd::Random(num)) / (2.0*num);
     radiusSquared = 0.2 + 0.1 * ArrayXd::Random(num);
     radiusSquared = radiusSquared.square();
+
     // store initial conditions in case we want to reuse this
-    initPos = 10.0 * ArrayXd::Random(3*num);
-    initVel = 1.0 * ArrayXd::Random(3*num);
+    ic.pos = 10.0 * ArrayXd::Random(numVars);
+    ic.vel = 1.0 * ArrayXd::Random(numVars);
   };
 
-  ~NBodyGrav() {};
-
-  // initialize the system
-  ArrayXd initPosit() {
-    return initPos;
-  }
-
-  ArrayXd initVeloc() {
-    return initVel;
-  }
-
   // perform n-body acceleration calculation; uses position and mass and radius squared
-  ArrayXd getAccel(const ArrayXd pos) {
-    ArrayXd newVal = ArrayXd::Zero(3*num);
+  ArrayXd getHighestDeriv(const ArrayXd pos) {
+    ArrayXd newVal = ArrayXd::Zero(numVars);
 
     // evaluate using ispc-compiled subroutine
     // pos, mass, radiusSquared --> newVal
@@ -97,7 +225,6 @@ public:
     if (true) {
       for (int i=0; i<num; ++i) {
         // new accelerations on particle i
-        Vector3d temp = pos.segment(3*i,3);
         Vector3d newAcc(0.0, 0.0, 0.0);
         for (int j=0; j<num; ++j) {
           // 20 flops
@@ -113,12 +240,11 @@ public:
   }
 
 private:
+  // number of bodies
   int num;
-  // these values are constant in time
+  // these values are constant in time and unique to this system
   ArrayXd mass;
   ArrayXd radiusSquared;
-  ArrayXd initPos;
-  ArrayXd initVel;
 };
 
 
@@ -127,8 +253,8 @@ private:
  */
 class ForwardIntegrator {
 public:
-  ForwardIntegrator (NBodyGrav& _gravSys, const int _nstates, const int _level) :
-    g(_gravSys),
+  ForwardIntegrator (DynamicalSystem& _system, const int _nstates, const int _level) :
+    g(_system),
     s(_nstates, DynamicState(_level, 0))
   {
     // set the zero state
@@ -154,7 +280,7 @@ public:
   }
 
 protected:
-  NBodyGrav& g;
+  DynamicalSystem& g;
   vector<DynamicState> s;
 };
 
@@ -164,8 +290,8 @@ protected:
  */
 class MultistageIntegrator : public ForwardIntegrator {
 public:
-  MultistageIntegrator (NBodyGrav& _gravSys, const int _level) :
-    ForwardIntegrator(_gravSys, 1, _level)
+  MultistageIntegrator (DynamicalSystem& _system, const int _level) :
+    ForwardIntegrator(_system, 1, _level)
   {
     // zero state set in parent constructor
   }
@@ -181,7 +307,7 @@ protected:
  */
 class RichardsonEuler {
 public:
-  RichardsonEuler (NBodyGrav& _gravSys) {
+  RichardsonEuler (DynamicalSystem& _system) {
 
   }
 
@@ -195,8 +321,8 @@ private:
  */
 class Euler : public MultistageIntegrator {
 public:
-  Euler (NBodyGrav& _gravSys, const int _level) :
-    MultistageIntegrator(_gravSys, _level)
+  Euler (DynamicalSystem& _system, const int _level) :
+    MultistageIntegrator(_system, _level)
   {
     // initial conditions set in parent constructor
   }
@@ -204,15 +330,22 @@ public:
   // always takes a position and velocity and turns it into a new position and velocity
   void stepForward (const double _dt) {
     // ask the system to find its new highest-level derivative
-    s[0].acc = g.getAccel(s[0].pos);
+    if (g.hasAccel()) {
+      s[0].acc = g.getHighestDeriv(s[0].pos);
+    } else {
+      s[0].vel = g.getHighestDeriv(s[0].pos);
+    }
 
     // add a new state to the head
     DynamicState newHead(s[0].level, s[0].step++);
     s.insert(s.begin(), newHead);
 
     // perform forward integration
-    s[0].pos = s[1].pos + _dt*s[1].vel + 0.5*_dt*_dt*s[1].acc;
-    s[0].vel = s[1].vel + _dt*s[1].acc;
+    s[0].pos = s[1].pos + _dt*s[1].vel;
+    if (g.hasAccel()) {
+      s[0].pos += 0.5*_dt*_dt*s[1].acc;
+      s[0].vel = s[1].vel + _dt*s[1].acc;
+    }
 
     // get rid of oldest state
     s.pop_back();
@@ -225,8 +358,8 @@ public:
  */
 class RK2 : public MultistageIntegrator {
 public:
-  RK2 (NBodyGrav& _gravSys, const int _level) :
-    MultistageIntegrator(_gravSys, _level)
+  RK2 (AccelerationSystem& _system, const int _level) :
+    MultistageIntegrator(_system, _level)
   {
     // initial conditions set in parent constructor
   }
@@ -237,7 +370,7 @@ public:
     const double alpha = 2.0/3.0;
 
     // ask the system to find its new highest-level derivative
-    s[0].acc = g.getAccel(s[0].pos);
+    s[0].acc = g.getHighestDeriv(s[0].pos);
 
     // add a new state to the head
     DynamicState newHead(s[0].level, s[0].step++);
@@ -249,7 +382,7 @@ public:
     const double hdt = alpha*_dt;
     DynamicState stage2(0,0);
     stage2.pos = s[1].pos + hdt*s[1].vel;
-    stage2.acc = g.getAccel(stage2.pos);
+    stage2.acc = g.getHighestDeriv(stage2.pos);
     stage2.vel = s[1].vel + hdt*s[1].acc;
 
     // position updates via weighted average velocity
@@ -269,8 +402,8 @@ public:
  */
 class RK4 : public MultistageIntegrator {
 public:
-  RK4 (NBodyGrav& _gravSys, const int _level) :
-    MultistageIntegrator(_gravSys, _level)
+  RK4 (DynamicalSystem& _system, const int _level) :
+    MultistageIntegrator(_system, _level)
   {
     // initial conditions set in parent constructor
   }
@@ -279,7 +412,7 @@ public:
   // Note that this could be improved using the 3/8 rule, see wikipedia
   void stepForward (const double _dt) {
     // ask the system to find its new highest-level derivative
-    s[0].acc = g.getAccel(s[0].pos);
+    s[0].acc = g.getHighestDeriv(s[0].pos);
 
     // add a new state to the head
     DynamicState newHead(s[0].level, s[0].step++);
@@ -291,19 +424,19 @@ public:
     const double hdt = 0.5*_dt;
     DynamicState stage2(0,0);
     stage2.pos = s[1].pos + hdt*s[1].vel;
-    stage2.acc = g.getAccel(stage2.pos);
+    stage2.acc = g.getHighestDeriv(stage2.pos);
     stage2.vel = s[1].vel + hdt*s[1].acc;
 
     // third step: project forward a half step from initial using the new acceleration
     DynamicState stage3(0,0);
     stage3.pos = s[1].pos + hdt*stage2.vel;
-    stage3.acc = g.getAccel(stage3.pos);
+    stage3.acc = g.getHighestDeriv(stage3.pos);
     stage3.vel = s[1].vel + hdt*stage2.acc;
 
     // fourth step: project forward a full step from initial using the newest acceleration
     DynamicState stage4(0,0);
     stage4.pos = s[1].pos + _dt*stage3.vel;
-    stage4.acc = g.getAccel(stage4.pos);
+    stage4.acc = g.getHighestDeriv(stage4.pos);
     stage4.vel = s[1].vel + _dt*stage3.acc;
 
     // position updates via weighted average velocity
@@ -319,8 +452,8 @@ public:
  */
 class MultistepIntegrator : public ForwardIntegrator {
 public:
-  MultistepIntegrator (const int _nsteps, NBodyGrav& _gravSys, const int _level, const double _dt) :
-    ForwardIntegrator(_gravSys, _nsteps, _level)
+  MultistepIntegrator (const int _nsteps, DynamicalSystem& _system, const int _level, const double _dt) :
+    ForwardIntegrator(_system, _nsteps, _level)
   {
     // zero state set in parent constructor
     // set the previous states here
@@ -330,7 +463,7 @@ public:
       s[istep].step = -istep;
       s[istep].pos = r.getPosition();
       s[istep].vel = r.getVelocity();
-      s[istep].acc = g.getAccel(s[istep].pos);
+      s[istep].acc = g.getHighestDeriv(s[istep].pos);
     }
   }
 };
@@ -341,8 +474,8 @@ public:
  */
 class AB2 : public MultistepIntegrator {
 public:
-  AB2 (NBodyGrav& _gravSys, const int _level, const double _dt) :
-    MultistepIntegrator(2, _gravSys, _level, _dt)
+  AB2 (AccelerationSystem& _system, const int _level, const double _dt) :
+    MultistepIntegrator(2, _system, _level, _dt)
   {}
   
   // always takes a position and velocity and turns it into a new position and velocity
@@ -352,7 +485,7 @@ public:
     // assert that this dt matches the previous dt
 
     // ask the system to find its new highest-level derivative
-    s[0].acc = g.getAccel(s[0].pos);
+    s[0].acc = g.getHighestDeriv(s[0].pos);
 
     // add a new state to the head
     DynamicState newHead(s[0].level, s[0].step++);
@@ -373,13 +506,13 @@ public:
  */
 class AB4 : public MultistepIntegrator {
 public:
-  AB4 (NBodyGrav& _gravSys, const int _level, const double _dt) :
-    MultistepIntegrator(4, _gravSys, _level, _dt)
+  AB4 (AccelerationSystem& _system, const int _level, const double _dt) :
+    MultistepIntegrator(4, _system, _level, _dt)
   {}
 
   // always takes a position and velocity and turns it into a new position and velocity
   void stepForward (const double _dt) {
-    s[0].acc = g.getAccel(s[0].pos);
+    s[0].acc = g.getHighestDeriv(s[0].pos);
 
     // add a new one to the head
     DynamicState newHead(s[0].level, s[0].step++);
@@ -400,13 +533,13 @@ public:
  */
 class AB5 : public MultistepIntegrator {
 public:
-  AB5 (NBodyGrav& _gravSys, const int _level, const double _dt) :
-    MultistepIntegrator(5, _gravSys, _level, _dt)
+  AB5 (AccelerationSystem& _system, const int _level, const double _dt) :
+    MultistepIntegrator(5, _system, _level, _dt)
   {}
 
   // always takes a position and velocity and turns it into a new position and velocity
   void stepForward (const double _dt) {
-    s[0].acc = g.getAccel(s[0].pos);
+    s[0].acc = g.getHighestDeriv(s[0].pos);
 
     // add a new one to the head
     DynamicState newHead(s[0].level, s[0].step++);
@@ -427,12 +560,12 @@ public:
  */
 class Verlet : public MultistepIntegrator {
 public:
-  Verlet (NBodyGrav& _gravSys, const int _level, const double _dt) :
-    MultistepIntegrator(2, _gravSys, _level, _dt)
+  Verlet (AccelerationSystem& _system, const int _level, const double _dt) :
+    MultistepIntegrator(2, _system, _level, _dt)
   {}
   
   void stepForward (const double _dt) {
-    s[0].acc = g.getAccel(s[0].pos);
+    s[0].acc = g.getHighestDeriv(s[0].pos);
 
     // add a new one to the head
     DynamicState newHead(s[0].level, s[0].step++);
@@ -454,12 +587,12 @@ public:
  */
 class VerletStock : public MultistepIntegrator {
 public:
-  VerletStock (NBodyGrav& _gravSys, const int _level, const double _dt) :
-    MultistepIntegrator(4, _gravSys, _level, _dt)
+  VerletStock (AccelerationSystem& _system, const int _level, const double _dt) :
+    MultistepIntegrator(4, _system, _level, _dt)
   {}
 
   void stepForward (const double _dt) {
-    s[0].acc = g.getAccel(s[0].pos);
+    s[0].acc = g.getHighestDeriv(s[0].pos);
 
     // add a new one to the head
     DynamicState newHead(s[0].level, s[0].step++);
@@ -487,12 +620,12 @@ public:
  */
 class Hamming416 : public MultistepIntegrator {
 public:
-  Hamming416 (NBodyGrav& _gravSys, const int _level, const double _dt) :
-    MultistepIntegrator(4, _gravSys, _level, _dt)
+  Hamming416 (AccelerationSystem& _system, const int _level, const double _dt) :
+    MultistepIntegrator(4, _system, _level, _dt)
   {}
   
   void stepForward (const double _dt) {
-    s[0].acc = g.getAccel(s[0].pos);
+    s[0].acc = g.getHighestDeriv(s[0].pos);
 
     // add a new one to the head
     DynamicState newHead(s[0].level, s[0].step++);
@@ -515,31 +648,14 @@ public:
  *
  * A predictor using accelerations, velocities, and positions
  */
-class Hamming418 {
+class Hamming418 : public MultistepIntegrator {
 public:
-  Hamming418 (NBodyGrav& _gravSys, const int _level, const double _dt) :
-    g(_gravSys),
-    s(2, DynamicState(_level, 0))
-  {
-    s[0].step = 0;
-    s[1].step = -1;
-    // set initial conditions
-    s[0].pos = g.initPosit();
-    s[0].vel = g.initVeloc();
-    // and set the previous state
-    RK4 r(g,0);
-    for (int istep=1; istep<2; ++istep) {
-      for (int i=0; i<100; ++i) r.stepForward(-0.01 * _dt);
-      s[istep].pos = r.getPosition();
-      s[istep].vel = r.getVelocity();
-      s[istep].acc = g.getAccel(s[istep].pos);
-    }
-  }
+  Hamming418 (AccelerationSystem& _system, const int _level, const double _dt) :
+    MultistepIntegrator(2, _system, _level, _dt)
+  {}
   
-  ~Hamming418 () {};
-
   void stepForward (const double _dt) {
-    s[0].acc = g.getAccel(s[0].pos);
+    s[0].acc = g.getHighestDeriv(s[0].pos);
 
     // add a new one to the head
     DynamicState newHead(s[0].level, s[0].step++);
@@ -562,20 +678,6 @@ public:
     // get rid of oldest
     s.pop_back();
   }
-
-  ArrayXd getPosition () {
-    return s[0].pos;
-  }
-
-  double getError (ArrayXd _trueSolution) {
-    ArrayXd temp = _trueSolution-getPosition();
-    double normsq = temp.matrix().norm() / sqrt(temp.size());
-    return(normsq);
-  }
-
-private:
-  NBodyGrav& g;
-  vector<DynamicState> s;
 };
 
 
@@ -594,6 +696,8 @@ int main () {
 
   // iterate a gravitational n-body system for a few steps
   NBodyGrav s(100);
+  NBodyVort2D vort(100);
+  Euler ev(vort,0);
 
   // find the "exact" solution for AB4 - use this as the exact solution for everyone
   double time = 0.0;
@@ -603,6 +707,7 @@ int main () {
   cout << "'Exact' solution is from running " << maxSteps << " steps of AB5 at dt= " << dt << endl;
   for (int i=0; i<maxSteps; ++i) {
     exact.stepForward(dt);
+    ev.stepForward(dt);
     time += dt;
   }
 
