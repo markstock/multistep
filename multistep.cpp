@@ -1,66 +1,118 @@
 #include <iostream>
+#include <vector>
 #include <math.h>
+#include <Eigen/Dense>
 
 using namespace std;
+using namespace Eigen;
+
+/*
+ * Compile with
+ *
+ * g++ -o verlet2 -std=c++11 -I/usr/include/eigen3 verlet2.cpp
+ *
+ * Copyright 2016 Mark J. Stock, markjstock@gmail.com
+ */
+
 
 /*
  * A pure sine wave, period=2pi, phase=0
  */
 class SineWave {
 public:
-  SineWave() {};
+  SineWave(const int _num) {
+    num = _num;
+    //period.resize(num);
+    //phase.resize(num);
+    period = 2.5 + 1.5*ArrayXd::Random(num);
+    phase = 3.1415927 * ArrayXd::Random(num);
+    //cout << "Periods " << period.transpose() << endl;
+    //for (int i=0; i<num; ++i) {
+    //  period[i] = 1.0 + 3.0 * i / static_cast<double>(num);
+    //  phase[i] = 2.0 * 3.1415927 * i / static_cast<double>(num);
+    //}
+  };
+
   ~SineWave() {};
 
-  double value(double time) {
-    return sin(time);
+  ArrayXd value(double time) {
+    ArrayXd newVal;
+    newVal.resize(num);
+    for (int i=0; i<num; ++i) {
+      newVal[i] = sin(time/period[i] + phase[i]);
+    }
+    return newVal;
   }
-  double veloc(double time) {
-    return cos(time);
+
+  ArrayXd veloc(double time) {
+    ArrayXd newVal;
+    newVal.resize(num);
+    for (int i=0; i<num; ++i) {
+      newVal[i] = cos(time/period[i] + phase[i]) / period[i];
+    }
+    return newVal;
   }
-  double accel(double time) {
-    return -sin(time);
+
+  ArrayXd accel(double time) {
+    ArrayXd newVal;
+    newVal.resize(num);
+    for (int i=0; i<num; ++i) {
+      newVal[i] = -sin(time/period[i] + phase[i]) / pow(period[i],2);
+    }
+    return newVal;
   }
 
 private:
+  int num;
+  ArrayXd period;
+  ArrayXd phase;
 };
+
 
 /*
  * Your basic 1-step Euler integrator
  */
 class Euler {
 public:
-  Euler (double _p, double _v) :
+  Euler (ArrayXd _p, ArrayXd _v) :
     pos(_p),
     vel(_v)
   {
     // acceleration stays unassigned
-    acc = 0.0;
+    acc.resize(pos.size());
   }
   
   ~Euler () {};
 
-  void stepForward (double _dt, double _newAcc) {
+  void stepForward (double _dt, ArrayXd _newAcc) {
     acc = _newAcc;
     pos = pos + _dt*vel + 0.5*_dt*_dt*acc;
     vel = vel + _dt*acc;
   }
 
-  double getPosition () {
+  ArrayXd getPosition () {
     return pos;
   }
 
+  double getError (ArrayXd _trueSolution) {
+    ArrayXd temp = _trueSolution-pos;
+    double normsq = temp.matrix().norm() / sqrt(temp.size());
+    return(normsq);
+  }
+
 private:
-  double pos;
-  double vel;
-  double acc;
+  ArrayXd pos;
+  ArrayXd vel;
+  ArrayXd acc;
 };
+
 
 /*
  * Standard Verlet (non-velocity) integrator
  */
 class Verlet {
 public:
-  Verlet (double _pnow, double _pprev) {
+  Verlet (ArrayXd _pnow, ArrayXd _pprev) {
     // set two positions
     pos[0] = _pprev;
     pos[1] = _pnow;
@@ -68,18 +120,24 @@ public:
   
   ~Verlet () {};
 
-  void stepForward (double _dt, double _newAcc) {
-    double newPos = 2.0*pos[1] - pos[0] + _dt*_dt*_newAcc;
+  void stepForward (double _dt, ArrayXd _newAcc) {
+    ArrayXd newPos = 2.0*pos[1] - pos[0] + _dt*_dt*_newAcc;
     pos[0] = pos[1];
     pos[1] = newPos;
   }
 
-  double getPosition () {
+  ArrayXd getPosition () {
     return pos[1];
   }
 
+  double getError (ArrayXd _trueSolution) {
+    ArrayXd temp = _trueSolution-getPosition();
+    double normsq = temp.matrix().norm() / sqrt(temp.size());
+    return(normsq);
+  }
+
 private:
-  double pos[2];
+  ArrayXd pos[2];
 };
 
 
@@ -88,8 +146,8 @@ private:
  */
 class VerletStock {
 public:
-  VerletStock (double _p0, double _pm1, double _pm2, double _pm3,
-               double _am1, double _am2) {
+  VerletStock (ArrayXd _p0, ArrayXd _pm1, ArrayXd _pm2, ArrayXd _pm3,
+               ArrayXd _am1, ArrayXd _am2) {
     // set two positions
     pos[0] = _pm3;
     pos[1] = _pm2;
@@ -101,9 +159,9 @@ public:
   
   ~VerletStock () {};
 
-  void stepForward (double _dt, double _newAcc) {
+  void stepForward (double _dt, ArrayXd _newAcc) {
     // compute the new position
-    double newPos = pos[3]
+    ArrayXd newPos = pos[3]
                   + pos[1]
                   - pos[0]
                   + 0.25*_dt*_dt* ( 5.0*_newAcc
@@ -118,43 +176,52 @@ public:
     acc[1] = _newAcc;
   }
 
-  double getPosition () {
+  ArrayXd getPosition () {
     return pos[3];
   }
 
+  double getError (ArrayXd _trueSolution) {
+    ArrayXd temp = _trueSolution-getPosition();
+    double normsq = temp.matrix().norm() / sqrt(temp.size());
+    return(normsq);
+  }
+
 private:
-  double pos[4];
-  double acc[2];
+  ArrayXd pos[4];
+  ArrayXd acc[2];
 };
 
 
 int main () {
 
   // iterate a sine wave for a few steps
-  SineWave s;
-  double time = 0.0;
-  double dt = 0.0001;
-  int maxSteps = 1000;
-  cout << time;
+  SineWave s(1000);
 
+  // iterate a gravitational n-body system for a few steps
+  //NBodyGrav g(100);
+
+  double time = 0.0;
+  double dt = 1.0;
+  int maxSteps = 1000;
+  cout << "Running " << maxSteps << " steps at dt= " << dt << endl;
 
   // initialize integrators
   Euler e(s.value(time), s.veloc(time));
-  cout << " " << e.getPosition();
+  //cout << time;
+  //cout << " " << e.getPosition().transpose();
 
   Verlet ve(s.value(time), s.value(time-dt));
-  cout << " " << ve.getPosition();
+  //cout << " " << ve.getPosition();
 
   VerletStock ves(s.value(time), s.value(time-dt), s.value(time-2.0*dt),
                   s.value(time-3.0*dt), s.accel(time-dt), s.accel(time-2.0*dt));
-  cout << " " << ves.getPosition();
-  cout << endl;
-
+  //cout << " " << ves.getPosition();
+  //cout << endl;
 
   // integrate forward
   for (int i=0; i<maxSteps; ++i) {
     // find the new acceleration
-    double newAccel = s.accel(time);
+    ArrayXd newAccel = s.accel(time);
 
     // take the forward step
     e.stepForward(dt, newAccel);
@@ -163,16 +230,19 @@ int main () {
     time += dt;
 
     // write out the new position 
-    cout << time << " " << e.getPosition();
-    cout << " " << ve.getPosition();
-    cout << " " << ves.getPosition() << endl;
+    //cout << time << " " << e.getPosition().transpose();
+    //cout << " " << ve.getPosition();
+    //cout << " " << ves.getPosition()
+    //cout << endl;
   }
 
   // how does each perform?
-  cout << "Theoretical solution at t=" << time << " is " << s.value(time) << endl;
-  cout << "Error in Euler is " << (fabs(s.value(time)-e.getPosition())/s.value(time)) << endl;
-  cout << "Error in Verlet is " << (fabs(s.value(time)-ve.getPosition())/s.value(time)) << endl;
-  cout << "Error in VerletStock is " << fabs((s.value(time)-ves.getPosition())/s.value(time)) << endl;
+  ArrayXd solution = s.value(time);
+  //cout << "Theoretical solution is:" << endl;
+  //cout << time << " " << solution.transpose() << endl;
+  cout << "Error in Euler is " << e.getError(solution) << endl;
+  cout << "Error in Verlet is " << ve.getError(solution) << endl;
+  cout << "Error in Verlet-Stock is " << ves.getError(solution) << endl;
 
   exit(0);
 }
