@@ -6,8 +6,9 @@ Library for multistep and multistage integration of ODEs on vectors of numbers
 This is a library and main routine for testing various multi-step and
 multi-stage forward integrators for ODEs. It performs a simulation of 
 100 bodies in three-dimensional gravitation using a wide range of time
-step sizes for the following integrators: Euler, Runge-Kutta 2nd and 4th
-order, Adams-Bashforth 2nd and 4th and 5th order, Standard Verlet,
+step sizes for the following integrators: Euler, Runge-Kutta 2nd (two types)
+and 3rd and 4th order,
+Adams-Bashforth 2nd and 4th and 5th order, Standard Verlet,
 a higher-order Richardson-Verlet, and a method from Hamming's "Numerical Methods for
 Scientists and Engineers."
 
@@ -26,12 +27,20 @@ AB5.
 ### Compile and run
 Compile and run multistep with the following commands on an RPM-based system:
 
-    sudo yum install eigen3-devel
-    g++ -o runmultistep -Ofast -std=c++11 -I/usr/include/eigen3 multistep.cpp
+    sudo dnf install eigen3-devel
+	git clone https://github.com/markstock/multistep.git
+	cd multistep
+	mkdir build
+	ccmake ..
+    make
     ./runmultistep
 
 ### Performance
 Short story: for gravitational systems, Verlet and Richardson-Verlet are the best.
+
+Note that in the test program, the multi*stage* methods take 2x, 3x, and 4x longer
+time steps; this is so that we can compare the error to the computational effort,
+as those methods perform more derivative evaluations per time *step*.
 
 ### Future work
 This is still a toy program, meant to test various forward integrators.
