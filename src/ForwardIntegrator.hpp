@@ -33,7 +33,7 @@ public:
   virtual void stepForward (const double _dt) = 0;
 
   // building block of many algorithms --- will only modify start if we solve for highest derivs
-  DynamicState<T> EulerStep(DynamicState<T> initial, DynamicState<T> derivs, const double _dt) {
+  DynamicState<T> EulerStep(DynamicState<T>& initial, const DynamicState<T>& derivs, const double _dt) {
 
     // create the state with copies of the lower derivatives
     DynamicState<T> next = initial.stepHelper();
@@ -57,7 +57,7 @@ public:
     return next;
   }
 
-  DynamicState<T> EulerStep(DynamicState<T> start, const double _dt) {
+  DynamicState<T> EulerStep(DynamicState<T>& start, const double _dt) {
     // call the general routine
     return EulerStep(start, start, _dt);
   }
