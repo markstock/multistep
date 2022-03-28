@@ -94,7 +94,7 @@ public:
 
 
 /*
- * Runge-Kutta 2nd order
+ * Runge-Kutta 2nd order - Heun's Method
  */
 template <class T>
 class RK2 : public MultistageIntegrator<T> {
@@ -105,11 +105,7 @@ public:
     // initial conditions set in parent constructor
   }
   
-  // Generalizable to Heun's or Ralson's Methods
   void stepForward (const double _dt) {
-
-    // alpha:error at 800 steps are  0.5:1.77703e-05  1.0:1.78663e-05  2/3:1.77534e-05
-    const double alpha = 2.0/3.0;
 
     // ask the system to find its new highest-level derivative
     int32_t numDeriv = this->g.getNumDerivs();
@@ -122,7 +118,7 @@ public:
     //DynamicState stage2(numDeriv,0,0);
 
     // from that state, project forward
-    DynamicState<T> stage2 = this->EulerStep(this->s[0], alpha*_dt);
+    DynamicState<T> stage2 = this->EulerStep(this->s[0], _dt);
     stage2.x[numDeriv] = this->g.getHighestDeriv(stage2.x[0]);
 
     /*
@@ -151,9 +147,8 @@ public:
     DynamicState<T> newHead = this->s[0].stepHelper();
 
     // position updates via weighted average velocity
-    const double oo2a = 1.0 / (2.0*alpha);
     for (int32_t d=0; d<numDeriv; d++) {
-      newHead.x[d] += _dt * ((1.0-oo2a)*this->s[0].x[d+1] + oo2a*stage2.x[d+1]);
+      newHead.x[d] += _dt * (0.5*this->s[0].x[d+1] + 0.5*stage2.x[d+1]);
       //s[0].x[d] = s[1].x[d] + _dt * ((1.0-oo2a)*s[1].x[d+1] + oo2a*stage2.x[d+1]);
     }
     //s[0].x[0] = s[1].x[0] + _dt * ((1.0-oo2a)*s[1].x[1] + oo2a*stage2.x[1]);
@@ -168,8 +163,89 @@ public:
 };
 
 /*
- * Runge-Kutta 3rd order
+ * Runge-Kutta 2nd order - Ralston's
  */
+template <class T>
+class RK2Ralston : public MultistageIntegrator<T> {
+public:
+  RK2Ralston (DynamicalSystem<T>& _system, const int32_t _level) :
+    MultistageIntegrator<T>(_system, _level)
+  {
+    // initial conditions set in parent constructor
+  }
+  
+  void stepForward (const double _dt) {
+
+    // ask the system to find its new highest-level derivative
+    int32_t numDeriv = this->g.getNumDerivs();
+    this->s[0].x[numDeriv] = this->g.getHighestDeriv(this->s[0].x[0]);
+
+    // first step: set stage 1 to the last solution (now s[1])
+
+    // from that state, project forward
+    DynamicState<T> stage2 = this->EulerStep(this->s[0], 2.0/3.0*_dt);
+    stage2.x[numDeriv] = this->g.getHighestDeriv(stage2.x[0]);
+
+    // add a new state to the head
+    DynamicState<T> newHead = this->s[0].stepHelper();
+
+    // position updates via weighted average velocity
+    for (int32_t d=0; d<numDeriv; d++) {
+      newHead.x[d] += _dt * (0.25*this->s[0].x[d+1] + 0.75*stage2.x[d+1]);
+    }
+
+    // add a new state to the head
+    this->s.insert(this->s.begin(), newHead);
+
+    // get rid of oldest state
+    this->s.pop_back();
+  }
+};
+
+/*
+ * Runge-Kutta 3rd order - also a Ralston's method
+ */
+template <class T>
+class RK3 : public MultistageIntegrator<T> {
+public:
+  RK3 (DynamicalSystem<T>& _system, const int32_t _level) :
+    MultistageIntegrator<T>(_system, _level)
+  {
+    // initial conditions set in parent constructor
+  }
+  
+  void stepForward (const double _dt) {
+
+    // ask the system to find its new highest-level derivative
+    const int32_t nd = this->g.getNumDerivs();
+    this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0]);
+
+    // first step: set stage 1 to the last solution (now s[1])
+
+    // from that state, project forward
+    DynamicState<T> stage2 = this->EulerStep(this->s[0], 0.5*_dt);
+    stage2.x[nd] = this->g.getHighestDeriv(stage2.x[0]);
+
+    // and do it again (using initial positions, new derivs)
+    DynamicState<T> stage3 = this->EulerStep(this->s[0], stage2, 0.75*_dt);
+    stage3.x[nd] = this->g.getHighestDeriv(stage3.x[0]);
+
+    // add a new state to the head
+    DynamicState<T> newHead = this->s[0].stepHelper();
+
+    // position updates via weighted average velocity
+    for (int32_t d=0; d<nd; d++) {
+      newHead.x[d] += _dt * (2.0*this->s[0].x[d+1] + 3.0*stage2.x[d+1] + 4.0*stage3.x[d+1]) / 9.0;
+    }
+
+    // add a new state to the head
+    this->s.insert(this->s.begin(), newHead);
+
+    // get rid of oldest state
+    this->s.pop_back();
+  }
+};
+
 
 /*
  * Runge-Kutta 4th order

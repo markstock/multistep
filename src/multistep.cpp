@@ -62,6 +62,7 @@ int main () {
   std::cout << "RK2\t\t";
   std::cout << "AB2\t\t";
   std::cout << "Verlet\t\t";
+  std::cout << "RK3\t\t";
   std::cout << "RK4\t\t";
   std::cout << "AB4\t\t";
   std::cout << "Verlet4\t\t";
@@ -78,10 +79,11 @@ int main () {
 
     // initialize integrators
     Euler<Eigen::ArrayXd> e(s,0);
-    RK2<Eigen::ArrayXd> r2(s,0);
-    AB2<Eigen::ArrayXd> a(s,0,dt);
+    RK2Ralston<Eigen::ArrayXd> r2(s,0);		// Ralston's is better for larger timesteps only
+    AB2<Eigen::ArrayXd> a2(s,0,dt);
     Verlet<Eigen::ArrayXd> ve(s,0,dt);
-    RK4<Eigen::ArrayXd> r(s,0);
+    RK3<Eigen::ArrayXd> r3(s,0);
+    RK4<Eigen::ArrayXd> r4(s,0);
     AB4<Eigen::ArrayXd> ab(s,0,dt);
     RichardsonVerlet<Eigen::ArrayXd> rv(s,0,dt);
     Hamming416<Eigen::ArrayXd> h6(s,0,dt);
@@ -93,9 +95,10 @@ int main () {
       // take the forward step
       e.stepForward(dt);
       if (i%2 == 0) r2.stepForward(2.0*dt);
-      a.stepForward(dt);
+      a2.stepForward(dt);
       ve.stepForward(dt);
-      if (i%4 == 0) r.stepForward(4.0*dt);
+      if (i%3 == 0) r3.stepForward(3.0*dt);
+      if (i%4 == 0) r4.stepForward(4.0*dt);
       ab.stepForward(dt);
       rv.stepForward(dt);
       h6.stepForward(dt);
@@ -113,17 +116,21 @@ int main () {
     //std::cout << "  RK2 solution: " << r2Solution.segment(0,4).transpose() << std::endl;
     //std::cout << "  Error in RK2 is " << exact.getError(r2Solution) << std::endl;
 
-    Eigen::ArrayXd aSolution = a.getPosition();
-    //std::cout << "  ABM2 solution: " << aSolution.segment(0,4).transpose() << std::endl;
-    //std::cout << "  Error in ABM2 is " << exact.getError(aSolution) << std::endl;
+    Eigen::ArrayXd a2Solution = a2.getPosition();
+    //std::cout << "  ABM2 solution: " << a2Solution.segment(0,4).transpose() << std::endl;
+    //std::cout << "  Error in ABM2 is " << exact.getError(a2Solution) << std::endl;
 
     Eigen::ArrayXd vSolution = ve.getPosition();
     //std::cout << "  Verlet solution: " << vSolution.segment(0,4).transpose() << std::endl;
     //std::cout << "  Error in Verlet is " << exact.getError(vSolution) << std::endl;
 
-    Eigen::ArrayXd rSolution = r.getPosition();
-    //std::cout << "  RK4 solution: " << rSolution.segment(0,4).transpose() << std::endl;
-    //std::cout << "  Error in RK4 is " << exact.getError(rSolution) << std::endl;
+    Eigen::ArrayXd r3Solution = r3.getPosition();
+    //std::cout << "  RK3 solution: " << r3Solution.segment(0,4).transpose() << std::endl;
+    //std::cout << "  Error in RK3 is " << exact.getError(r3Solution) << std::endl;
+
+    Eigen::ArrayXd r4Solution = r4.getPosition();
+    //std::cout << "  RK4 solution: " << r4Solution.segment(0,4).transpose() << std::endl;
+    //std::cout << "  Error in RK4 is " << exact.getError(r4Solution) << std::endl;
 
     Eigen::ArrayXd abSolution = ab.getPosition();
     //std::cout << "  ABM4 solution: " << abSolution.segment(0,4).transpose() << std::endl;
@@ -139,9 +146,10 @@ int main () {
 
     std::cout << maxSteps << "\t" << exact.getError(eSolution);
     std::cout << "\t" << exact.getError(r2Solution);
-    std::cout << "\t" << exact.getError(aSolution);
+    std::cout << "\t" << exact.getError(a2Solution);
     std::cout << "\t" << exact.getError(vSolution);
-    std::cout << "\t" << exact.getError(rSolution);
+    std::cout << "\t" << exact.getError(r3Solution);
+    std::cout << "\t" << exact.getError(r4Solution);
     std::cout << "\t" << exact.getError(abSolution);
     std::cout << "\t" << exact.getError(sSolution);
     std::cout << "\t" << exact.getError(h6Solution);
