@@ -4,14 +4,15 @@
  * Copyright 2016,22 Mark J. Stock, markjstock@gmail.com
  */
 
+//#include "DynamicState.hpp"
+
+#include <Eigen/Dense>
+
 #include <cstdint>
 #include <iostream>
 #include <vector>
 #include <cmath>
 
-#include <Eigen/Dense>
-
-using namespace std;
 using namespace Eigen;
 
 
@@ -54,17 +55,17 @@ public:
   }
 
   double getFloatStep () {
-    return step * pow(2.0, level);
+    return step * std::pow(2.0, level);
   }
 
   ArrayXd getPos(void) {
-    //cout << "DynamicState::getPos " << x.size() << endl;
-    //cout << "DynamicState::getPos " << x.size() << "  " << x[0].size() << endl;
-    //cout << "DynamicState::getPos " << x.size() << "  " << x[0].size() << "  " << x[0].segment(0,4).transpose() << endl;
+    //std::cout << "DynamicState::getPos " << x.size() << std::endl;
+    //std::cout << "DynamicState::getPos " << x.size() << "  " << x[0].size() << std::endl;
+    //std::cout << "DynamicState::getPos " << x.size() << "  " << x[0].size() << "  " << x[0].segment(0,4).transpose() << std::endl;
     try {
       return x[0];
-    } catch (exception& e) {
-      cout << "Standard exception: " << e.what() << endl;
+    } catch (std::exception& e) {
+      std::cout << "Standard exception: " << e.what() << std::endl;
       return ArrayXd(0);
     }
     //if (x.size() > 0) return x[0];
@@ -76,8 +77,8 @@ public:
     //else return ArrayXd::Zero(1);
     try {
       return x[1];
-    } catch (exception& e) {
-      cout << "Standard exception: " << e.what() << endl;
+    } catch (std::exception& e) {
+      std::cout << "Standard exception: " << e.what() << std::endl;
     }
   }
 
@@ -86,8 +87,8 @@ public:
     //else return ArrayXd::Zero(1);
     try {
       return x[2];
-    } catch (exception& e) {
-      cout << "Standard exception: " << e.what() << endl;
+    } catch (std::exception& e) {
+      std::cout << "Standard exception: " << e.what() << std::endl;
     }
   }
 
@@ -97,7 +98,7 @@ public:
   int32_t step;
   // store a value and an arbitrary number of derivatives
   // x[0] is position, x[1] velocity, x[2] acceleration, x[3] jerk, etc.
-  vector<ArrayXd> x;
+  std::vector<ArrayXd> x;
 };
 
 
@@ -262,7 +263,7 @@ public:
     // store initial conditions in case we want to reuse this
     ic.x[0] = 10.0 * ArrayXd::Random(numVars);
     ic.x[1] = 1.0 * ArrayXd::Random(numVars);
-    //cout << "NBodyGrav::NBodyGrav " << ic.x[0].segment(0,4).transpose() << endl;
+    //std::cout << "NBodyGrav::NBodyGrav " << ic.x[0].segment(0,4).transpose() << std::endl;
   };
 
   // perform n-body acceleration calculation; uses position and mass and radius squared
@@ -356,20 +357,20 @@ public:
   ArrayXd getDeriv (const int32_t deriv) {
     try {
       return s[0].x[deriv];
-    } catch (exception& e) {
-      cout << "Standard exception: " << e.what() << endl;
+    } catch (std::exception& e) {
+      std::cout << "Standard exception: " << e.what() << std::endl;
       return ArrayXd(0);
     }
   }
 
   double getError (const ArrayXd _trueSolution) {
     ArrayXd temp = _trueSolution-getPosition();
-    return( temp.matrix().norm() / sqrt(temp.size()) );
+    return( temp.matrix().norm() / std::sqrt(temp.size()) );
   }
 
 protected:
   DynamicalSystem& g;
-  vector<DynamicState> s;
+  std::vector<DynamicState> s;
 };
 
 
@@ -386,7 +387,7 @@ public:
 
 protected:
   // save stages here?
-  //vector<DynamicState> stage;
+  //std::vector<DynamicState> stage;
 };
 
 
@@ -553,7 +554,7 @@ public:
   // Note that this could be improved using the 3/8 rule, see wikipedia
   void stepForward (const double _dt) {
     // ask the system to find its new highest-level derivative
-    //cout << "in RK4::stepForward " << s[0].x[0].segment(0,4).transpose() << endl;
+    //std::cout << "in RK4::stepForward " << s[0].x[0].segment(0,4).transpose() << std::endl;
 
     // solve for top derivative at current state
     const int32_t nd = g.getNumDerivs();
@@ -634,7 +635,7 @@ public:
     // zero state set in parent constructor
     // set the previous states here
     RK4 r(g,0);
-    //cout << "in MultistepIntegrator::MultistepIntegrator " << r.getPosition().segment(0,4).transpose() << endl;
+    //std::cout << "in MultistepIntegrator::MultistepIntegrator " << r.getPosition().segment(0,4).transpose() << std::endl;
     for (int32_t istep=1; istep<_nsteps; ++istep) {
       for (int32_t i=0; i<100; ++i) r.stepForward(-0.01 * _dt);
       s[istep].step = -istep;
@@ -905,30 +906,30 @@ int main () {
   int32_t maxSteps = 10000;
   double dt = 10.0 / maxSteps;
   AB5 exact(s,0,dt);
-  cout << "'Exact' solution is from running " << maxSteps << " steps of AB5 at dt= " << dt << endl;
+  std::cout << "'Exact' solution is from running " << maxSteps << " steps of AB5 at dt= " << dt << std::endl;
   for (int32_t i=0; i<maxSteps; ++i) {
     exact.stepForward(dt);
     //ev.stepForward(dt);
     time += dt;
   }
 
-  cout << "steps\t";
-  cout << "Euler\t\t";
-  cout << "RK2\t\t";
-  cout << "AB2\t\t";
-  cout << "Verlet\t\t";
-  cout << "RK4\t\t";
-  cout << "AB4\t\t";
-  cout << "Verlet4\t\t";
-  cout << "Ham416\t\t";
-  //cout << "Ham418\t\t";
-  cout << "AB5";
-  cout << endl;
+  std::cout << "steps\t";
+  std::cout << "Euler\t\t";
+  std::cout << "RK2\t\t";
+  std::cout << "AB2\t\t";
+  std::cout << "Verlet\t\t";
+  std::cout << "RK4\t\t";
+  std::cout << "AB4\t\t";
+  std::cout << "Verlet4\t\t";
+  std::cout << "Ham416\t\t";
+  //std::cout << "Ham418\t\t";
+  std::cout << "AB5";
+  std::cout << std::endl;
 
   // integrate using the various methods
   for (maxSteps = 12; maxSteps < 15000; maxSteps *= 2) {
     dt = 10.0 / maxSteps;
-    //cout << "Running " << maxSteps << " steps at dt= " << dt << endl;
+    //std::cout << "Running " << maxSteps << " steps at dt= " << dt << std::endl;
     time = 0.0;
 
     // initialize integrators
@@ -961,48 +962,48 @@ int main () {
     }
 
     ArrayXd eSolution = e.getPosition();
-    //cout << "  Euler solution: " << eSolution.segment(0,4).transpose() << endl;
-    //cout << "  Error in Euler is " << exact.getError(eSolution) << endl;
+    //std::cout << "  Euler solution: " << eSolution.segment(0,4).transpose() << std::endl;
+    //std::cout << "  Error in Euler is " << exact.getError(eSolution) << std::endl;
 
     ArrayXd r2Solution = r2.getPosition();
-    //cout << "  RK2 solution: " << r2Solution.segment(0,4).transpose() << endl;
-    //cout << "  Error in RK2 is " << exact.getError(r2Solution) << endl;
+    //std::cout << "  RK2 solution: " << r2Solution.segment(0,4).transpose() << std::endl;
+    //std::cout << "  Error in RK2 is " << exact.getError(r2Solution) << std::endl;
 
     ArrayXd aSolution = a.getPosition();
-    //cout << "  ABM2 solution: " << aSolution.segment(0,4).transpose() << endl;
-    //cout << "  Error in ABM2 is " << exact.getError(aSolution) << endl;
+    //std::cout << "  ABM2 solution: " << aSolution.segment(0,4).transpose() << std::endl;
+    //std::cout << "  Error in ABM2 is " << exact.getError(aSolution) << std::endl;
 
     ArrayXd vSolution = ve.getPosition();
-    //cout << "  Verlet solution: " << vSolution.segment(0,4).transpose() << endl;
-    //cout << "  Error in Verlet is " << exact.getError(vSolution) << endl;
+    //std::cout << "  Verlet solution: " << vSolution.segment(0,4).transpose() << std::endl;
+    //std::cout << "  Error in Verlet is " << exact.getError(vSolution) << std::endl;
 
     ArrayXd rSolution = r.getPosition();
-    //cout << "  RK4 solution: " << rSolution.segment(0,4).transpose() << endl;
-    //cout << "  Error in RK4 is " << exact.getError(rSolution) << endl;
+    //std::cout << "  RK4 solution: " << rSolution.segment(0,4).transpose() << std::endl;
+    //std::cout << "  Error in RK4 is " << exact.getError(rSolution) << std::endl;
 
     ArrayXd abSolution = ab.getPosition();
-    //cout << "  ABM4 solution: " << abSolution.segment(0,4).transpose() << endl;
-    //cout << "  Error in ABM4 is " << exact.getError(abSolution) << endl;
+    //std::cout << "  ABM4 solution: " << abSolution.segment(0,4).transpose() << std::endl;
+    //std::cout << "  Error in ABM4 is " << exact.getError(abSolution) << std::endl;
 
     ArrayXd sSolution = rv.getPosition();
-    //cout << "  RichardsonVerlet solution: " << sSolution.segment(0,4).transpose() << endl;
-    //cout << "  Error in RichardsonVerlet is " << exact.getError(sSolution) << endl;
+    //std::cout << "  RichardsonVerlet solution: " << sSolution.segment(0,4).transpose() << std::endl;
+    //std::cout << "  Error in RichardsonVerlet is " << exact.getError(sSolution) << std::endl;
 
     ArrayXd h6Solution = h6.getPosition();
     ArrayXd h8Solution = h8.getPosition();
     ArrayXd abbSolution = abb.getPosition();
 
-    cout << maxSteps << "\t" << exact.getError(eSolution);
-    cout << "\t" << exact.getError(r2Solution);
-    cout << "\t" << exact.getError(aSolution);
-    cout << "\t" << exact.getError(vSolution);
-    cout << "\t" << exact.getError(rSolution);
-    cout << "\t" << exact.getError(abSolution);
-    cout << "\t" << exact.getError(sSolution);
-    cout << "\t" << exact.getError(h6Solution);
-    //cout << "\t" << exact.getError(h8Solution);
-    cout << "\t" << exact.getError(abbSolution);
-    cout << endl;
+    std::cout << maxSteps << "\t" << exact.getError(eSolution);
+    std::cout << "\t" << exact.getError(r2Solution);
+    std::cout << "\t" << exact.getError(aSolution);
+    std::cout << "\t" << exact.getError(vSolution);
+    std::cout << "\t" << exact.getError(rSolution);
+    std::cout << "\t" << exact.getError(abSolution);
+    std::cout << "\t" << exact.getError(sSolution);
+    std::cout << "\t" << exact.getError(h6Solution);
+    //std::cout << "\t" << exact.getError(h8Solution);
+    std::cout << "\t" << exact.getError(abbSolution);
+    std::cout << std::endl;
   }
 
   exit(0);
