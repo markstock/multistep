@@ -6,6 +6,8 @@
 
 #include "DynamicState.hpp"
 #include "DynamicalSystem.hpp"
+#include "NBodyVort2D.hpp"
+#include "NBodyGrav3D.hpp"
 
 #include <Eigen/Dense>
 
@@ -13,117 +15,6 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
-
-
-/*
- * A 2D vortex system with constant strengths, radii
- */
-class NBodyVort2D : public VelocitySystem<Eigen::ArrayXd> {
-public:
-  NBodyVort2D(const int32_t _num) :
-    VelocitySystem<Eigen::ArrayXd>(2*_num),
-    num(_num)
-  {
-    // num is how many bodies
-
-    // we store the unchanging properties here
-    circ = Eigen::ArrayXd::Random(num) / (2.0*num);
-    radiusSquared = 0.2 + 0.1 * Eigen::ArrayXd::Random(num);
-    radiusSquared = radiusSquared.square();
-
-    // store initial conditions in case we want to reuse this
-    ic.x[0] = 10.0 * Eigen::ArrayXd::Random(numVars);
-  };
-
-  // perform n-body acceleration calculation; uses position and mass and radius squared
-  Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos) {
-    Eigen::ArrayXd newVels = Eigen::ArrayXd::Zero(numVars);
-
-    // evaluate using ispc-compiled subroutine
-    // pos, circ, radiusSquared --> newVels
-
-    // evaluate locally
-    if (true) {
-      for (int32_t i=0; i<num; ++i) {
-        // new velocities on particle i
-        Eigen::Vector2d thisVel(0.0, 0.0);
-        for (int32_t j=0; j<num; ++j) {
-          // 20 flops
-          // the influence of particle j
-          Eigen::Vector2d dx = pos.segment(2*j,2) - pos.segment(2*i,2);
-          double invdist = 1.0/(dx.norm()+radiusSquared(j));
-          double factor = circ(j) * invdist * invdist;
-          thisVel[0] -= dx[1] * factor;
-          thisVel[1] += dx[0] * factor;
-        }
-        newVels.segment(2*i,2) = thisVel;
-      }
-    }
-    return newVels;
-  }
-
-private:
-  // number of bodies
-  int32_t num;
-  // these values are constant in time and unique to this system
-  Eigen::ArrayXd circ;
-  Eigen::ArrayXd radiusSquared;
-};
-
-/*
- * A gravitational n-body system
- */
-class NBodyGrav : public AccelerationSystem<Eigen::ArrayXd> {
-public:
-  NBodyGrav(const int32_t _num) :
-    AccelerationSystem<Eigen::ArrayXd>(3*_num),
-    num(_num)
-  {
-    // num is how many bodies
-
-    // we store the unchanging properties here
-    mass = (2.0 + Eigen::ArrayXd::Random(num)) / (2.0*num);
-    radiusSquared = 0.2 + 0.1 * Eigen::ArrayXd::Random(num);
-    radiusSquared = radiusSquared.square();
-
-    // store initial conditions in case we want to reuse this
-    ic.x[0] = 10.0 * Eigen::ArrayXd::Random(numVars);
-    ic.x[1] = 1.0 * Eigen::ArrayXd::Random(numVars);
-    //std::cout << "NBodyGrav::NBodyGrav " << ic.x[0].segment(0,4).transpose() << std::endl;
-  };
-
-  // perform n-body acceleration calculation; uses position and mass and radius squared
-  Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos) {
-    Eigen::ArrayXd newVal = Eigen::ArrayXd::Zero(numVars);
-
-    // evaluate using ispc-compiled subroutine
-    // pos, mass, radiusSquared --> newVal
-
-    // evaluate locally
-    if (true) {
-      for (int32_t i=0; i<num; ++i) {
-        // new accelerations on particle i
-        Eigen::Vector3d newAcc(0.0, 0.0, 0.0);
-        for (int32_t j=0; j<num; ++j) {
-          // 20 flops
-          // the influence of particle j
-          Eigen::Vector3d dx = pos.segment(3*j,3) - pos.segment(3*i,3);
-          double invdist = 1.0/(dx.norm()+radiusSquared(j));
-          newAcc += dx * (mass(j) * invdist * invdist * invdist);
-        }
-        newVal.segment(3*i,3) = newAcc;
-      }
-    }
-    return newVal;
-  }
-
-private:
-  // number of bodies
-  int32_t num;
-  // these values are constant in time and unique to this system
-  Eigen::ArrayXd mass;
-  Eigen::ArrayXd radiusSquared;
-};
 
 
 /*
@@ -195,7 +86,9 @@ public:
   }
 
 protected:
+  // saves the reference to the system to be integrated
   DynamicalSystem<Eigen::ArrayXd>& g;
+  // and a series of states (current and previous) to store
   std::vector<DynamicState<Eigen::ArrayXd>> s;
 };
 
@@ -364,6 +257,9 @@ public:
   }
 };
 
+/*
+ * Runge-Kutta 3rd order
+ */
 
 /*
  * Runge-Kutta 4th order
@@ -723,7 +619,7 @@ public:
 int main () {
 
   // iterate a gravitational n-body system for a few steps
-  NBodyGrav s(100);
+  NBodyGrav3D s(100);
   //NBodyVort2D vort(100);
   //Euler ev(vort,0);
 
