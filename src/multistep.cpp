@@ -13,8 +13,6 @@
 #include <vector>
 #include <cmath>
 
-using namespace Eigen;
-
 
 /*
  * A class to contain one state (one set of changing variables, and all of their derivatives)
@@ -32,7 +30,7 @@ public:
 
   DynamicState(const int32_t _highestDeriv, const int32_t _level, const int32_t _step) :
     level(_level), step(_step),
-    x(1+_highestDeriv, ArrayXd())
+    x(1+_highestDeriv, Eigen::ArrayXd())
   {
     // do not initialize the arrays now, wait for later
   };
@@ -48,7 +46,7 @@ public:
       next.x[i] = x[i];
     }
     // highest derivative array is left as zeros
-    next.x[x.size()] = ArrayXd::Zero(x[0].size());
+    next.x[x.size()] = Eigen::ArrayXd::Zero(x[0].size());
     // finally, advance the step by one
     next.step++;
     return next;
@@ -58,7 +56,7 @@ public:
     return step * std::pow(2.0, level);
   }
 
-  ArrayXd getPos(void) {
+  Eigen::ArrayXd getPos(void) {
     //std::cout << "DynamicState::getPos " << x.size() << std::endl;
     //std::cout << "DynamicState::getPos " << x.size() << "  " << x[0].size() << std::endl;
     //std::cout << "DynamicState::getPos " << x.size() << "  " << x[0].size() << "  " << x[0].segment(0,4).transpose() << std::endl;
@@ -66,15 +64,15 @@ public:
       return x[0];
     } catch (std::exception& e) {
       std::cout << "Standard exception: " << e.what() << std::endl;
-      return ArrayXd(0);
+      return Eigen::ArrayXd(0);
     }
     //if (x.size() > 0) return x[0];
-    //else return ArrayXd::Zero(1);
+    //else return Eigen::ArrayXd::Zero(1);
   }
 
-  ArrayXd getVel(void) {
+  Eigen::ArrayXd getVel(void) {
     //if (x.size() > 1) return x[1];
-    //else return ArrayXd::Zero(1);
+    //else return Eigen::ArrayXd::Zero(1);
     try {
       return x[1];
     } catch (std::exception& e) {
@@ -82,9 +80,9 @@ public:
     }
   }
 
-  ArrayXd getAcc(void) {
+  Eigen::ArrayXd getAcc(void) {
     //if (x.size() > 2) return x[2];
-    //else return ArrayXd::Zero(1);
+    //else return Eigen::ArrayXd::Zero(1);
     try {
       return x[2];
     } catch (std::exception& e) {
@@ -98,7 +96,7 @@ public:
   int32_t step;
   // store a value and an arbitrary number of derivatives
   // x[0] is position, x[1] velocity, x[2] acceleration, x[3] jerk, etc.
-  std::vector<ArrayXd> x;
+  std::vector<Eigen::ArrayXd> x;
 };
 
 
@@ -125,7 +123,7 @@ public:
   virtual DynamicState getInit(void) = 0;
 
   virtual bool hasAccel(void) = 0;
-  virtual ArrayXd getHighestDeriv(const ArrayXd pos) = 0;
+  virtual Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos) = 0;
 
 protected:
   // number of equations in the system
@@ -153,7 +151,7 @@ public:
   DynamicState getInit() { return ic; }
 
   bool hasAccel(void) { return false; }
-  //virtual ArrayXd getHighestDeriv(const ArrayXd pos) = 0;
+  //virtual Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos) = 0;
 
 protected:
   // must define and store initial state
@@ -181,7 +179,7 @@ public:
   DynamicState getInit() { return ic; }
 
   bool hasAccel(void) { return true; }
-  //virtual ArrayXd getHighestDeriv(const ArrayXd pos) = 0;
+  //virtual Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos) = 0;
 
 protected:
   // must define and store initial state
@@ -201,17 +199,17 @@ public:
     // num is how many bodies
 
     // we store the unchanging properties here
-    circ = ArrayXd::Random(num) / (2.0*num);
-    radiusSquared = 0.2 + 0.1 * ArrayXd::Random(num);
+    circ = Eigen::ArrayXd::Random(num) / (2.0*num);
+    radiusSquared = 0.2 + 0.1 * Eigen::ArrayXd::Random(num);
     radiusSquared = radiusSquared.square();
 
     // store initial conditions in case we want to reuse this
-    ic.x[0] = 10.0 * ArrayXd::Random(numVars);
+    ic.x[0] = 10.0 * Eigen::ArrayXd::Random(numVars);
   };
 
   // perform n-body acceleration calculation; uses position and mass and radius squared
-  ArrayXd getHighestDeriv(const ArrayXd pos) {
-    ArrayXd newVels = ArrayXd::Zero(numVars);
+  Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos) {
+    Eigen::ArrayXd newVels = Eigen::ArrayXd::Zero(numVars);
 
     // evaluate using ispc-compiled subroutine
     // pos, circ, radiusSquared --> newVels
@@ -220,11 +218,11 @@ public:
     if (true) {
       for (int32_t i=0; i<num; ++i) {
         // new velocities on particle i
-        Vector2d thisVel(0.0, 0.0);
+        Eigen::Vector2d thisVel(0.0, 0.0);
         for (int32_t j=0; j<num; ++j) {
           // 20 flops
           // the influence of particle j
-          Vector2d dx = pos.segment(2*j,2) - pos.segment(2*i,2);
+          Eigen::Vector2d dx = pos.segment(2*j,2) - pos.segment(2*i,2);
           double invdist = 1.0/(dx.norm()+radiusSquared(j));
           double factor = circ(j) * invdist * invdist;
           thisVel[0] -= dx[1] * factor;
@@ -240,8 +238,8 @@ private:
   // number of bodies
   int32_t num;
   // these values are constant in time and unique to this system
-  ArrayXd circ;
-  ArrayXd radiusSquared;
+  Eigen::ArrayXd circ;
+  Eigen::ArrayXd radiusSquared;
 };
 
 /*
@@ -256,19 +254,19 @@ public:
     // num is how many bodies
 
     // we store the unchanging properties here
-    mass = (2.0 + ArrayXd::Random(num)) / (2.0*num);
-    radiusSquared = 0.2 + 0.1 * ArrayXd::Random(num);
+    mass = (2.0 + Eigen::ArrayXd::Random(num)) / (2.0*num);
+    radiusSquared = 0.2 + 0.1 * Eigen::ArrayXd::Random(num);
     radiusSquared = radiusSquared.square();
 
     // store initial conditions in case we want to reuse this
-    ic.x[0] = 10.0 * ArrayXd::Random(numVars);
-    ic.x[1] = 1.0 * ArrayXd::Random(numVars);
+    ic.x[0] = 10.0 * Eigen::ArrayXd::Random(numVars);
+    ic.x[1] = 1.0 * Eigen::ArrayXd::Random(numVars);
     //std::cout << "NBodyGrav::NBodyGrav " << ic.x[0].segment(0,4).transpose() << std::endl;
   };
 
   // perform n-body acceleration calculation; uses position and mass and radius squared
-  ArrayXd getHighestDeriv(const ArrayXd pos) {
-    ArrayXd newVal = ArrayXd::Zero(numVars);
+  Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos) {
+    Eigen::ArrayXd newVal = Eigen::ArrayXd::Zero(numVars);
 
     // evaluate using ispc-compiled subroutine
     // pos, mass, radiusSquared --> newVal
@@ -277,11 +275,11 @@ public:
     if (true) {
       for (int32_t i=0; i<num; ++i) {
         // new accelerations on particle i
-        Vector3d newAcc(0.0, 0.0, 0.0);
+        Eigen::Vector3d newAcc(0.0, 0.0, 0.0);
         for (int32_t j=0; j<num; ++j) {
           // 20 flops
           // the influence of particle j
-          Vector3d dx = pos.segment(3*j,3) - pos.segment(3*i,3);
+          Eigen::Vector3d dx = pos.segment(3*j,3) - pos.segment(3*i,3);
           double invdist = 1.0/(dx.norm()+radiusSquared(j));
           newAcc += dx * (mass(j) * invdist * invdist * invdist);
         }
@@ -295,8 +293,8 @@ private:
   // number of bodies
   int32_t num;
   // these values are constant in time and unique to this system
-  ArrayXd mass;
-  ArrayXd radiusSquared;
+  Eigen::ArrayXd mass;
+  Eigen::ArrayXd radiusSquared;
 };
 
 
@@ -346,25 +344,25 @@ public:
     return EulerStep(start, start, _dt);
   }
 
-  ArrayXd getPosition () {
+  Eigen::ArrayXd getPosition () {
     return s[0].getPos();
   }
 
-  ArrayXd getVelocity () {
+  Eigen::ArrayXd getVelocity () {
     return s[0].getVel();
   }
 
-  ArrayXd getDeriv (const int32_t deriv) {
+  Eigen::ArrayXd getDeriv (const int32_t deriv) {
     try {
       return s[0].x[deriv];
     } catch (std::exception& e) {
       std::cout << "Standard exception: " << e.what() << std::endl;
-      return ArrayXd(0);
+      return Eigen::ArrayXd(0);
     }
   }
 
-  double getError (const ArrayXd _trueSolution) {
-    ArrayXd temp = _trueSolution-getPosition();
+  double getError (const Eigen::ArrayXd _trueSolution) {
+    Eigen::ArrayXd temp = _trueSolution-getPosition();
     return( temp.matrix().norm() / std::sqrt(temp.size()) );
   }
 
@@ -961,37 +959,37 @@ int main () {
 
     }
 
-    ArrayXd eSolution = e.getPosition();
+    Eigen::ArrayXd eSolution = e.getPosition();
     //std::cout << "  Euler solution: " << eSolution.segment(0,4).transpose() << std::endl;
     //std::cout << "  Error in Euler is " << exact.getError(eSolution) << std::endl;
 
-    ArrayXd r2Solution = r2.getPosition();
+    Eigen::ArrayXd r2Solution = r2.getPosition();
     //std::cout << "  RK2 solution: " << r2Solution.segment(0,4).transpose() << std::endl;
     //std::cout << "  Error in RK2 is " << exact.getError(r2Solution) << std::endl;
 
-    ArrayXd aSolution = a.getPosition();
+    Eigen::ArrayXd aSolution = a.getPosition();
     //std::cout << "  ABM2 solution: " << aSolution.segment(0,4).transpose() << std::endl;
     //std::cout << "  Error in ABM2 is " << exact.getError(aSolution) << std::endl;
 
-    ArrayXd vSolution = ve.getPosition();
+    Eigen::ArrayXd vSolution = ve.getPosition();
     //std::cout << "  Verlet solution: " << vSolution.segment(0,4).transpose() << std::endl;
     //std::cout << "  Error in Verlet is " << exact.getError(vSolution) << std::endl;
 
-    ArrayXd rSolution = r.getPosition();
+    Eigen::ArrayXd rSolution = r.getPosition();
     //std::cout << "  RK4 solution: " << rSolution.segment(0,4).transpose() << std::endl;
     //std::cout << "  Error in RK4 is " << exact.getError(rSolution) << std::endl;
 
-    ArrayXd abSolution = ab.getPosition();
+    Eigen::ArrayXd abSolution = ab.getPosition();
     //std::cout << "  ABM4 solution: " << abSolution.segment(0,4).transpose() << std::endl;
     //std::cout << "  Error in ABM4 is " << exact.getError(abSolution) << std::endl;
 
-    ArrayXd sSolution = rv.getPosition();
+    Eigen::ArrayXd sSolution = rv.getPosition();
     //std::cout << "  RichardsonVerlet solution: " << sSolution.segment(0,4).transpose() << std::endl;
     //std::cout << "  Error in RichardsonVerlet is " << exact.getError(sSolution) << std::endl;
 
-    ArrayXd h6Solution = h6.getPosition();
-    ArrayXd h8Solution = h8.getPosition();
-    ArrayXd abbSolution = abb.getPosition();
+    Eigen::ArrayXd h6Solution = h6.getPosition();
+    Eigen::ArrayXd h8Solution = h8.getPosition();
+    Eigen::ArrayXd abbSolution = abb.getPosition();
 
     std::cout << maxSteps << "\t" << exact.getError(eSolution);
     std::cout << "\t" << exact.getError(r2Solution);
