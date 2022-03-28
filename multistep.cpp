@@ -787,9 +787,9 @@ public:
  *
  * This is effectively performing Richardson extrapolation on the standard Verlet!
  */
-class VerletStock : public MultistepIntegrator {
+class RichardsonVerlet : public MultistepIntegrator {
 public:
-  VerletStock (AccelerationSystem& _system, const int _level, const double _dt) :
+  RichardsonVerlet (AccelerationSystem& _system, const int _level, const double _dt) :
     MultistepIntegrator(4, _system, _level, _dt)
   {}
 
@@ -939,7 +939,7 @@ int main () {
     Verlet ve(s,0,dt);
     RK4 r(s,0);
     AB4 ab(s,0,dt);
-    VerletStock ves(s,0,dt);
+    RichardsonVerlet rv(s,0,dt);
     Hamming416 h6(s,0,dt);
     Hamming418 h8(s,0,dt);
     AB5 abb(s,0,dt);
@@ -953,7 +953,7 @@ int main () {
       ve.stepForward(dt);
       if (i%4 == 0) r.stepForward(4.0*dt);
       ab.stepForward(dt);
-      ves.stepForward(dt);
+      rv.stepForward(dt);
       h6.stepForward(dt);
       h8.stepForward(dt);
       abb.stepForward(dt);
@@ -985,9 +985,9 @@ int main () {
     //cout << "  ABM4 solution: " << abSolution.segment(0,4).transpose() << endl;
     //cout << "  Error in ABM4 is " << exact.getError(abSolution) << endl;
 
-    ArrayXd sSolution = ves.getPosition();
-    //cout << "  VerletStock solution: " << sSolution.segment(0,4).transpose() << endl;
-    //cout << "  Error in Verlet-Stock is " << exact.getError(sSolution) << endl;
+    ArrayXd sSolution = rv.getPosition();
+    //cout << "  RichardsonVerlet solution: " << sSolution.segment(0,4).transpose() << endl;
+    //cout << "  Error in RichardsonVerlet is " << exact.getError(sSolution) << endl;
 
     ArrayXd h6Solution = h6.getPosition();
     ArrayXd h8Solution = h8.getPosition();
