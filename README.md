@@ -37,9 +37,9 @@ Short story: for gravitational systems, Verlet and Richardson-Verlet are the bes
 This is still a toy program, meant to test various forward integrators.
 In the future, I hope to do the following:
 
-* break it out into separate files
-* use a proper build system and make a linkable library
-* support multithreading and superscalar instructions for the nbody code
+* build a linkable library and use that to generate executables
+* support multithreading and superscalar instructions for the nbody code (via templates)
+* add Bulirsch-Stoer integrator
 * clean up the code and simplify some usage
 * should calculation of the highest derivative come at the end of the current step or the beginning of the next one? The former would make for cleaner code.
 * include integrators with automatic time step adjustment (global first)
