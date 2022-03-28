@@ -1,21 +1,18 @@
+/*
+ * multistep - a program to test forward advection schemes
+ *
+ * Copyright 2016,22 Mark J. Stock, markjstock@gmail.com
+ */
+
+#include <cstdint>
 #include <iostream>
 #include <vector>
-#include <math.h>
+#include <cmath>
+
 #include <Eigen/Dense>
 
 using namespace std;
 using namespace Eigen;
-
-/*
- * Verlet - a program to test forward advection schemes
- *
- * Copyright 2016 Mark J. Stock, markjstock@gmail.com
- *
- * v9: Dynamical state now has vector of derivatives
- *
- * Compile and run with:
- * g++ -o runmultistep -Ofast -std=c++11 -I/usr/include/eigen3 multistep.cpp && ./runmultistep
- */
 
 
 /*
@@ -28,13 +25,13 @@ public:
     DynamicState(1)
   {}
 
-  DynamicState(const int _highestDeriv) :
+  DynamicState(const int32_t _highestDeriv) :
     DynamicState(_highestDeriv, 0, 0)
   {}
 
-  DynamicState(const int _highestDeriv, const int _level, const int _step) :
-    x(1+_highestDeriv, ArrayXd()),
-    level(_level), step(_step)
+  DynamicState(const int32_t _highestDeriv, const int32_t _level, const int32_t _step) :
+    level(_level), step(_step),
+    x(1+_highestDeriv, ArrayXd())
   {
     // do not initialize the arrays now, wait for later
   };
@@ -46,7 +43,7 @@ public:
     // make the new object here
     DynamicState next(x.size(), level, step);
     // copy all derivatives except for the highest
-    for (int i=0; i<x.size(); i++) {
+    for (size_t i=0; i<x.size(); i++) {
       next.x[i] = x[i];
     }
     // highest derivative array is left as zeros
@@ -68,6 +65,7 @@ public:
       return x[0];
     } catch (exception& e) {
       cout << "Standard exception: " << e.what() << endl;
+      return ArrayXd(0);
     }
     //if (x.size() > 0) return x[0];
     //else return ArrayXd::Zero(1);
@@ -94,9 +92,9 @@ public:
   }
 
   // level 0 is at base dt, level 1 is at 2*dt, level -1 at 0.5*dt
-  int level;
+  int32_t level;
   // step is time step within that level
-  int step;
+  int32_t step;
   // store a value and an arbitrary number of derivatives
   // x[0] is position, x[1] velocity, x[2] acceleration, x[3] jerk, etc.
   vector<ArrayXd> x;
@@ -115,12 +113,12 @@ public:
  */
 class DynamicalSystem {
 public:
-  DynamicalSystem(const int _num) :
+  DynamicalSystem(const int32_t _num) :
     numVars(_num)
   {}
 
   // number of derivatives in the dynamic state
-  virtual int getNumDerivs(void) = 0;
+  virtual int32_t getNumDerivs(void) = 0;
 
   // return the initial state
   virtual DynamicState getInit(void) = 0;
@@ -130,7 +128,7 @@ public:
 
 protected:
   // number of equations in the system
-  int numVars;
+  int32_t numVars;
 };
 
 
@@ -140,7 +138,7 @@ protected:
  */
 class VelocitySystem : public DynamicalSystem {
 public:
-  VelocitySystem(const int _num) :
+  VelocitySystem(const int32_t _num) :
     DynamicalSystem(_num),
     ic(DynamicState(1))
   {
@@ -148,7 +146,7 @@ public:
   }
 
   // number of derivatives in the dynamic state
-  int getNumDerivs(void) { return 1; }
+  int32_t getNumDerivs(void) { return 1; }
 
   // return the initial state
   DynamicState getInit() { return ic; }
@@ -168,7 +166,7 @@ protected:
  */
 class AccelerationSystem : public DynamicalSystem {
 public:
-  AccelerationSystem(const int _num) :
+  AccelerationSystem(const int32_t _num) :
     DynamicalSystem(_num),
     ic(DynamicState(2))
   {
@@ -176,7 +174,7 @@ public:
   }
 
   // number of derivatives in the dynamic state
-  int getNumDerivs(void) { return 2; }
+  int32_t getNumDerivs(void) { return 2; }
 
   // return the initial state
   DynamicState getInit() { return ic; }
@@ -195,9 +193,9 @@ protected:
  */
 class NBodyVort2D : public VelocitySystem {
 public:
-  NBodyVort2D(const int _num) :
-    num(_num),
-    VelocitySystem(2*_num)
+  NBodyVort2D(const int32_t _num) :
+    VelocitySystem(2*_num),
+    num(_num)
   {
     // num is how many bodies
 
@@ -219,10 +217,10 @@ public:
 
     // evaluate locally
     if (true) {
-      for (int i=0; i<num; ++i) {
+      for (int32_t i=0; i<num; ++i) {
         // new velocities on particle i
         Vector2d thisVel(0.0, 0.0);
-        for (int j=0; j<num; ++j) {
+        for (int32_t j=0; j<num; ++j) {
           // 20 flops
           // the influence of particle j
           Vector2d dx = pos.segment(2*j,2) - pos.segment(2*i,2);
@@ -239,7 +237,7 @@ public:
 
 private:
   // number of bodies
-  int num;
+  int32_t num;
   // these values are constant in time and unique to this system
   ArrayXd circ;
   ArrayXd radiusSquared;
@@ -250,9 +248,9 @@ private:
  */
 class NBodyGrav : public AccelerationSystem {
 public:
-  NBodyGrav(const int _num) :
-    num(_num),
-    AccelerationSystem(3*_num)
+  NBodyGrav(const int32_t _num) :
+    AccelerationSystem(3*_num),
+    num(_num)
   {
     // num is how many bodies
 
@@ -276,10 +274,10 @@ public:
 
     // evaluate locally
     if (true) {
-      for (int i=0; i<num; ++i) {
+      for (int32_t i=0; i<num; ++i) {
         // new accelerations on particle i
         Vector3d newAcc(0.0, 0.0, 0.0);
-        for (int j=0; j<num; ++j) {
+        for (int32_t j=0; j<num; ++j) {
           // 20 flops
           // the influence of particle j
           Vector3d dx = pos.segment(3*j,3) - pos.segment(3*i,3);
@@ -294,7 +292,7 @@ public:
 
 private:
   // number of bodies
-  int num;
+  int32_t num;
   // these values are constant in time and unique to this system
   ArrayXd mass;
   ArrayXd radiusSquared;
@@ -306,7 +304,7 @@ private:
  */
 class ForwardIntegrator {
 public:
-  ForwardIntegrator (DynamicalSystem& _system, const int _nstates, const int _level) :
+  ForwardIntegrator (DynamicalSystem& _system, const int32_t _nstates, const int32_t _level) :
     g(_system),
     s(_nstates, DynamicState(_system.getNumDerivs(), _level, 0))
   {
@@ -327,9 +325,9 @@ public:
     //initial.x[g.getNumDerivs()] = g.getHighestDeriv(start.x[0]);
 
     // step all lower derivatives forward
-    for (int nd=0; nd<g.getNumDerivs(); nd++) {
+    for (int32_t nd=0; nd<g.getNumDerivs(); nd++) {
       double factor = 1.0;
-      for (int d=nd; d>=0; d--) {
+      for (int32_t d=nd; d>=0; d--) {
         factor *= _dt / (nd-d+1);
         next.x[d] += factor * derivs.x[nd+1];
       }
@@ -355,11 +353,12 @@ public:
     return s[0].getVel();
   }
 
-  ArrayXd getDeriv (const int deriv) {
+  ArrayXd getDeriv (const int32_t deriv) {
     try {
       return s[0].x[deriv];
     } catch (exception& e) {
       cout << "Standard exception: " << e.what() << endl;
+      return ArrayXd(0);
     }
   }
 
@@ -379,7 +378,7 @@ protected:
  */
 class MultistageIntegrator : public ForwardIntegrator {
 public:
-  MultistageIntegrator (DynamicalSystem& _system, const int _level) :
+  MultistageIntegrator (DynamicalSystem& _system, const int32_t _level) :
     ForwardIntegrator(_system, 1, _level)
   {
     // zero state set in parent constructor
@@ -410,7 +409,7 @@ private:
  */
 class Euler : public MultistageIntegrator {
 public:
-  Euler (DynamicalSystem& _system, const int _level) :
+  Euler (DynamicalSystem& _system, const int32_t _level) :
     MultistageIntegrator(_system, _level)
   {
     // initial conditions set in parent constructor
@@ -418,7 +417,7 @@ public:
   
   // always takes a position and velocity and turns it into a new position and velocity
   void stepForward (const double _dt) {
-    //int numDeriv = g.getNumDerivs();
+    //int32_t numDeriv = g.getNumDerivs();
 
     // ask the system to find its new highest-level derivative
     s[0].x[g.getNumDerivs()] = g.getHighestDeriv(s[0].x[0]);
@@ -433,10 +432,10 @@ public:
     // s[1].x[0]  means  state t-1, 0th derivative
 
     /*
-    for (int deriv=0; deriv<numDeriv; deriv++) {
+    for (int32_t deriv=0; deriv<numDeriv; deriv++) {
       //s[0].x[deriv] = s[1].x[deriv];
       double factor = 1.0;
-      for (int d=deriv; d>=0; d--) {
+      for (int32_t d=deriv; d>=0; d--) {
         factor *= _dt / (deriv-d+1);
         s[0].x[d] += factor * s[1].x[deriv+1];
       }
@@ -470,7 +469,7 @@ public:
  */
 class RK2 : public MultistageIntegrator {
 public:
-  RK2 (DynamicalSystem& _system, const int _level) :
+  RK2 (DynamicalSystem& _system, const int32_t _level) :
     MultistageIntegrator(_system, _level)
   {
     // initial conditions set in parent constructor
@@ -483,7 +482,7 @@ public:
     const double alpha = 2.0/3.0;
 
     // ask the system to find its new highest-level derivative
-    int numDeriv = g.getNumDerivs();
+    int32_t numDeriv = g.getNumDerivs();
     s[0].x[numDeriv] = g.getHighestDeriv(s[0].x[0]);
 
     // first step: set stage 1 to the last solution (now s[1])
@@ -523,7 +522,7 @@ public:
 
     // position updates via weighted average velocity
     const double oo2a = 1.0 / (2.0*alpha);
-    for (int d=0; d<numDeriv; d++) {
+    for (int32_t d=0; d<numDeriv; d++) {
       newHead.x[d] += _dt * ((1.0-oo2a)*s[0].x[d+1] + oo2a*stage2.x[d+1]);
       //s[0].x[d] = s[1].x[d] + _dt * ((1.0-oo2a)*s[1].x[d+1] + oo2a*stage2.x[d+1]);
     }
@@ -544,7 +543,7 @@ public:
  */
 class RK4 : public MultistageIntegrator {
 public:
-  RK4 (DynamicalSystem& _system, const int _level) :
+  RK4 (DynamicalSystem& _system, const int32_t _level) :
     MultistageIntegrator(_system, _level)
   {
     // initial conditions set in parent constructor
@@ -557,7 +556,7 @@ public:
     //cout << "in RK4::stepForward " << s[0].x[0].segment(0,4).transpose() << endl;
 
     // solve for top derivative at current state
-    const int nd = g.getNumDerivs();
+    const int32_t nd = g.getNumDerivs();
     s[0].x[nd] = g.getHighestDeriv(s[0].x[0]);
 
     // first step: set stage 1 to the last solution (now s[1])
@@ -580,15 +579,15 @@ public:
 
     // second step: project forward a half step using that acceleration
     DynamicState stage2 = s[0].stepHelper();
-    for (int d=0; d<nd; d++) stage2.x[d] += hdt*s[0].x[d+1];
-    //for (int d=0; d<nd; d++) stage2.x[d] = s[0].x[d] + hdt*s[0].x[d+1];
+    for (int32_t d=0; d<nd; d++) stage2.x[d] += hdt*s[0].x[d+1];
+    //for (int32_t d=0; d<nd; d++) stage2.x[d] = s[0].x[d] + hdt*s[0].x[d+1];
     //stage2.x[0] = s[0].x[0] + hdt*s[0].x[1];
     //stage2.x[1] = s[0].x[1] + hdt*s[0].x[2];
     stage2.x[nd] = g.getHighestDeriv(stage2.x[0]);
 
     // third step: project forward a half step from initial using the new acceleration
     DynamicState stage3 = s[0].stepHelper();
-    for (int d=0; d<nd; d++) stage3.x[d] += hdt*stage2.x[d+1];
+    for (int32_t d=0; d<nd; d++) stage3.x[d] += hdt*stage2.x[d+1];
     //DynamicState stage3(nd,0,0);
     //stage3.x[0] = s[0].x[0] + hdt*stage2.x[1];
     //stage3.x[1] = s[0].x[1] + hdt*stage2.x[2];
@@ -596,7 +595,7 @@ public:
 
     // fourth step: project forward a full step from initial using the newest acceleration
     DynamicState stage4 = s[0].stepHelper();
-    for (int d=0; d<nd; d++) stage4.x[d] += _dt*stage3.x[d+1];
+    for (int32_t d=0; d<nd; d++) stage4.x[d] += _dt*stage3.x[d+1];
     //DynamicState stage4(nd,0,0);
     //stage4.x[0] = s[0].x[0] + _dt*stage3.x[1];
     //stage4.x[1] = s[0].x[1] + _dt*stage3.x[2];
@@ -606,7 +605,7 @@ public:
     //DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
     DynamicState newHead = s[0].stepHelper();
 
-    for (int d=0; d<nd; d++) {
+    for (int32_t d=0; d<nd; d++) {
       newHead.x[d] += _dt * (s[0].x[d+1] + 2.0*stage2.x[d+1] + 2.0*stage3.x[d+1] + stage4.x[d+1]) / 6.0;
     }
 
@@ -629,17 +628,17 @@ public:
  */
 class MultistepIntegrator : public ForwardIntegrator {
 public:
-  MultistepIntegrator (const int _nsteps, DynamicalSystem& _system, const int _level, const double _dt) :
+  MultistepIntegrator (const int32_t _nsteps, DynamicalSystem& _system, const int32_t _level, const double _dt) :
     ForwardIntegrator(_system, _nsteps, _level)
   {
     // zero state set in parent constructor
     // set the previous states here
     RK4 r(g,0);
     //cout << "in MultistepIntegrator::MultistepIntegrator " << r.getPosition().segment(0,4).transpose() << endl;
-    for (int istep=1; istep<_nsteps; ++istep) {
-      for (int i=0; i<100; ++i) r.stepForward(-0.01 * _dt);
+    for (int32_t istep=1; istep<_nsteps; ++istep) {
+      for (int32_t i=0; i<100; ++i) r.stepForward(-0.01 * _dt);
       s[istep].step = -istep;
-      for (int deriv=0; deriv<g.getNumDerivs(); deriv++) {
+      for (int32_t deriv=0; deriv<g.getNumDerivs(); deriv++) {
         s[istep].x[deriv] = r.getDeriv(deriv);
       }
       s[istep].x[g.getNumDerivs()] = g.getHighestDeriv(s[istep].x[0]);
@@ -653,7 +652,7 @@ public:
  */
 class AB2 : public MultistepIntegrator {
 public:
-  AB2 (DynamicalSystem& _system, const int _level, const double _dt) :
+  AB2 (DynamicalSystem& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator(2, _system, _level, _dt)
   {}
   
@@ -662,7 +661,7 @@ public:
     // assert that we have at least two states in the history
     //static_assert(s.size() >= 2, "State vector does not have enough entries");
     // assert that this dt matches the previous dt
-    const int numDerivs = g.getNumDerivs();
+    const int32_t numDerivs = g.getNumDerivs();
 
     // ask the system to find its new highest-level derivative
     s[0].x[numDerivs] = g.getHighestDeriv(s[0].x[0]);
@@ -673,7 +672,7 @@ public:
 
     // perform forward integration: AB2 for first one down, AM2 for all others
     s[0].x[numDerivs-1] = s[1].x[numDerivs-1] + 0.5 * _dt * (3.0*s[1].x[numDerivs] - s[2].x[numDerivs]);
-    for (int deriv=numDerivs-1; deriv>0; deriv--) {
+    for (int32_t deriv=numDerivs-1; deriv>0; deriv--) {
       s[0].x[deriv-1] += 0.5 * _dt * (s[0].x[deriv] + s[1].x[deriv]);
     }
 
@@ -692,13 +691,13 @@ public:
  */
 class AB4 : public MultistepIntegrator {
 public:
-  AB4 (DynamicalSystem& _system, const int _level, const double _dt) :
+  AB4 (DynamicalSystem& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator(4, _system, _level, _dt)
   {}
 
   // always takes a position and velocity and turns it into a new position and velocity
   void stepForward (const double _dt) {
-    const int nd = g.getNumDerivs();
+    const int32_t nd = g.getNumDerivs();
 
     s[0].x[nd] = g.getHighestDeriv(s[0].x[0]);
 
@@ -708,7 +707,7 @@ public:
 
     // perform forward integration: AB4 for first, AM4 for all lower-order derivatives
     s[0].x[nd-1] += _dt * (55.0*s[1].x[nd] - 59.0*s[2].x[nd] + 37.0*s[3].x[nd] - 9.0*s[4].x[nd]) / 24.0;
-    for (int deriv=nd-1; deriv>0; deriv--) {
+    for (int32_t deriv=nd-1; deriv>0; deriv--) {
       s[0].x[deriv-1] += _dt * (9.0*s[0].x[deriv] + 19.0*s[1].x[deriv] - 5.0*s[2].x[deriv] + s[3].x[deriv]) / 24.0;
     }
 
@@ -727,13 +726,13 @@ public:
  */
 class AB5 : public MultistepIntegrator {
 public:
-  AB5 (DynamicalSystem& _system, const int _level, const double _dt) :
+  AB5 (DynamicalSystem& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator(5, _system, _level, _dt)
   {}
 
   // always takes a position and velocity and turns it into a new position and velocity
   void stepForward (const double _dt) {
-    const int nd = g.getNumDerivs();
+    const int32_t nd = g.getNumDerivs();
 
     s[0].x[nd] = g.getHighestDeriv(s[0].x[0]);
 
@@ -743,7 +742,7 @@ public:
 
     // perform forward integration: AB5 for first, AM5 for all lower-order derivatives
     s[0].x[nd-1] += _dt * (1901.0*s[1].x[nd] - 2774.0*s[2].x[nd] + 2616.0*s[3].x[nd] - 1274.0*s[4].x[nd] + 251.0*s[5].x[nd]) / 720.0;
-    for (int deriv=nd-1; deriv>0; deriv--) {
+    for (int32_t deriv=nd-1; deriv>0; deriv--) {
       s[0].x[deriv-1] += _dt * (251.0*s[0].x[deriv] + 646.0*s[1].x[deriv] - 264.0*s[2].x[deriv] + 106.0*s[3].x[deriv] - 19.0*s[4].x[deriv]) / 720.0;
     }
 
@@ -762,7 +761,7 @@ public:
  */
 class Verlet : public MultistepIntegrator {
 public:
-  Verlet (AccelerationSystem& _system, const int _level, const double _dt) :
+  Verlet (AccelerationSystem& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator(2, _system, _level, _dt)
   {}
   
@@ -789,7 +788,7 @@ public:
  */
 class RichardsonVerlet : public MultistepIntegrator {
 public:
-  RichardsonVerlet (AccelerationSystem& _system, const int _level, const double _dt) :
+  RichardsonVerlet (AccelerationSystem& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator(4, _system, _level, _dt)
   {}
 
@@ -822,7 +821,7 @@ public:
  */
 class Hamming416 : public MultistepIntegrator {
 public:
-  Hamming416 (AccelerationSystem& _system, const int _level, const double _dt) :
+  Hamming416 (AccelerationSystem& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator(4, _system, _level, _dt)
   {}
   
@@ -852,7 +851,7 @@ public:
  */
 class Hamming418 : public MultistepIntegrator {
 public:
-  Hamming418 (AccelerationSystem& _system, const int _level, const double _dt) :
+  Hamming418 (AccelerationSystem& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator(2, _system, _level, _dt)
   {}
   
@@ -903,11 +902,11 @@ int main () {
 
   // find the "exact" solution for AB4 - use this as the exact solution for everyone
   double time = 0.0;
-  int maxSteps = 10000;
+  int32_t maxSteps = 10000;
   double dt = 10.0 / maxSteps;
   AB5 exact(s,0,dt);
   cout << "'Exact' solution is from running " << maxSteps << " steps of AB5 at dt= " << dt << endl;
-  for (int i=0; i<maxSteps; ++i) {
+  for (int32_t i=0; i<maxSteps; ++i) {
     exact.stepForward(dt);
     //ev.stepForward(dt);
     time += dt;
@@ -944,7 +943,7 @@ int main () {
     Hamming418 h8(s,0,dt);
     AB5 abb(s,0,dt);
 
-    for (int i=0; i<maxSteps; ++i) {
+    for (int32_t i=0; i<maxSteps; ++i) {
 
       // take the forward step
       e.stepForward(dt);
