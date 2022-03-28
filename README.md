@@ -31,6 +31,7 @@ Compile and run multistep with the following commands on an RPM-based system:
 	git clone https://github.com/markstock/multistep.git
 	cd multistep
 	mkdir build
+	cd build
 	ccmake ..
     make
     ./runmultistep
