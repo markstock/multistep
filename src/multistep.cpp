@@ -4,7 +4,8 @@
  * Copyright 2016,22 Mark J. Stock, markjstock@gmail.com
  */
 
-//#include "DynamicState.hpp"
+#include "DynamicState.hpp"
+#include "DynamicalSystem.hpp"
 
 #include <Eigen/Dense>
 
@@ -15,185 +16,12 @@
 
 
 /*
- * A class to contain one state (one set of changing variables, and all of their derivatives)
- */
-class DynamicState {
-public:
-  // delegating constructor chain
-  DynamicState() :
-    DynamicState(1)
-  {}
-
-  DynamicState(const int32_t _highestDeriv) :
-    DynamicState(_highestDeriv, 0, 0)
-  {}
-
-  DynamicState(const int32_t _highestDeriv, const int32_t _level, const int32_t _step) :
-    level(_level), step(_step),
-    x(1+_highestDeriv, Eigen::ArrayXd())
-  {
-    // do not initialize the arrays now, wait for later
-  };
-
-  // copy constructor works just like it's supposed to
-
-  // like a copy constructor, but advances step and zeros highest derivatives
-  DynamicState stepHelper() {
-    // make the new object here
-    DynamicState next(x.size(), level, step);
-    // copy all derivatives except for the highest
-    for (size_t i=0; i<x.size(); i++) {
-      next.x[i] = x[i];
-    }
-    // highest derivative array is left as zeros
-    next.x[x.size()] = Eigen::ArrayXd::Zero(x[0].size());
-    // finally, advance the step by one
-    next.step++;
-    return next;
-  }
-
-  double getFloatStep () {
-    return step * std::pow(2.0, level);
-  }
-
-  Eigen::ArrayXd getPos(void) {
-    //std::cout << "DynamicState::getPos " << x.size() << std::endl;
-    //std::cout << "DynamicState::getPos " << x.size() << "  " << x[0].size() << std::endl;
-    //std::cout << "DynamicState::getPos " << x.size() << "  " << x[0].size() << "  " << x[0].segment(0,4).transpose() << std::endl;
-    try {
-      return x[0];
-    } catch (std::exception& e) {
-      std::cout << "Standard exception: " << e.what() << std::endl;
-      return Eigen::ArrayXd(0);
-    }
-    //if (x.size() > 0) return x[0];
-    //else return Eigen::ArrayXd::Zero(1);
-  }
-
-  Eigen::ArrayXd getVel(void) {
-    //if (x.size() > 1) return x[1];
-    //else return Eigen::ArrayXd::Zero(1);
-    try {
-      return x[1];
-    } catch (std::exception& e) {
-      std::cout << "Standard exception: " << e.what() << std::endl;
-    }
-  }
-
-  Eigen::ArrayXd getAcc(void) {
-    //if (x.size() > 2) return x[2];
-    //else return Eigen::ArrayXd::Zero(1);
-    try {
-      return x[2];
-    } catch (std::exception& e) {
-      std::cout << "Standard exception: " << e.what() << std::endl;
-    }
-  }
-
-  // level 0 is at base dt, level 1 is at 2*dt, level -1 at 0.5*dt
-  int32_t level;
-  // step is time step within that level
-  int32_t step;
-  // store a value and an arbitrary number of derivatives
-  // x[0] is position, x[1] velocity, x[2] acceleration, x[3] jerk, etc.
-  std::vector<Eigen::ArrayXd> x;
-};
-
-
-/*
- * Must make a virtual superclass for integrable systems
- */
-//class SineWave : public AccelerationSystem {
-//class NBodyGrav : public AccelerationSystem {
-//class NBodyVort : public VelocitySystem {
-
-/*
- * DynamicalSystem - generalized class for dynamical systems
- */
-class DynamicalSystem {
-public:
-  DynamicalSystem(const int32_t _num) :
-    numVars(_num)
-  {}
-
-  // number of derivatives in the dynamic state
-  virtual int32_t getNumDerivs(void) = 0;
-
-  // return the initial state
-  virtual DynamicState getInit(void) = 0;
-
-  virtual bool hasAccel(void) = 0;
-  virtual Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos) = 0;
-
-protected:
-  // number of equations in the system
-  int32_t numVars;
-};
-
-
-/*
- * VelocitySystem - a dynamic system driven by velocities
- *                  like vortex methods; states have x, x'
- */
-class VelocitySystem : public DynamicalSystem {
-public:
-  VelocitySystem(const int32_t _num) :
-    DynamicalSystem(_num),
-    ic(DynamicState(1))
-  {
-    ic.step = 0;
-  }
-
-  // number of derivatives in the dynamic state
-  int32_t getNumDerivs(void) { return 1; }
-
-  // return the initial state
-  DynamicState getInit() { return ic; }
-
-  bool hasAccel(void) { return false; }
-  //virtual Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos) = 0;
-
-protected:
-  // must define and store initial state
-  DynamicState ic;
-};
-
-
-/*
- * AccelerationSystem - a dynamic system driven by accelerations
- *                      like gravitation; states have x, x', x"
- */
-class AccelerationSystem : public DynamicalSystem {
-public:
-  AccelerationSystem(const int32_t _num) :
-    DynamicalSystem(_num),
-    ic(DynamicState(2))
-  {
-    ic.step = 0;
-  }
-
-  // number of derivatives in the dynamic state
-  int32_t getNumDerivs(void) { return 2; }
-
-  // return the initial state
-  DynamicState getInit() { return ic; }
-
-  bool hasAccel(void) { return true; }
-  //virtual Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos) = 0;
-
-protected:
-  // must define and store initial state
-  DynamicState ic;
-};
-
-
-/*
  * A 2D vortex system with constant strengths, radii
  */
-class NBodyVort2D : public VelocitySystem {
+class NBodyVort2D : public VelocitySystem<Eigen::ArrayXd> {
 public:
   NBodyVort2D(const int32_t _num) :
-    VelocitySystem(2*_num),
+    VelocitySystem<Eigen::ArrayXd>(2*_num),
     num(_num)
   {
     // num is how many bodies
@@ -245,10 +73,10 @@ private:
 /*
  * A gravitational n-body system
  */
-class NBodyGrav : public AccelerationSystem {
+class NBodyGrav : public AccelerationSystem<Eigen::ArrayXd> {
 public:
   NBodyGrav(const int32_t _num) :
-    AccelerationSystem(3*_num),
+    AccelerationSystem<Eigen::ArrayXd>(3*_num),
     num(_num)
   {
     // num is how many bodies
@@ -303,9 +131,9 @@ private:
  */
 class ForwardIntegrator {
 public:
-  ForwardIntegrator (DynamicalSystem& _system, const int32_t _nstates, const int32_t _level) :
+  ForwardIntegrator (DynamicalSystem<Eigen::ArrayXd>& _system, const int32_t _nstates, const int32_t _level) :
     g(_system),
-    s(_nstates, DynamicState(_system.getNumDerivs(), _level, 0))
+    s(_nstates, DynamicState<Eigen::ArrayXd>(_system.getNumDerivs(), _level, 0))
   {
     // set the zero state
     s[0] = g.getInit();
@@ -315,10 +143,10 @@ public:
   virtual void stepForward (const double _dt) = 0;
 
   // building block of many algorithms --- will only modify start if we solve for highest derivs
-  DynamicState EulerStep(DynamicState initial, DynamicState derivs, const double _dt) {
+  DynamicState<Eigen::ArrayXd> EulerStep(DynamicState<Eigen::ArrayXd> initial, DynamicState<Eigen::ArrayXd> derivs, const double _dt) {
 
     // create the state with copies of the lower derivatives
-    DynamicState next = initial.stepHelper();
+    DynamicState<Eigen::ArrayXd> next = initial.stepHelper();
 
     // find the highest derivative - nope
     //initial.x[g.getNumDerivs()] = g.getHighestDeriv(start.x[0]);
@@ -339,7 +167,7 @@ public:
     return next;
   }
 
-  DynamicState EulerStep(DynamicState start, const double _dt) {
+  DynamicState<Eigen::ArrayXd> EulerStep(DynamicState<Eigen::ArrayXd> start, const double _dt) {
     // call the general routine
     return EulerStep(start, start, _dt);
   }
@@ -367,8 +195,8 @@ public:
   }
 
 protected:
-  DynamicalSystem& g;
-  std::vector<DynamicState> s;
+  DynamicalSystem<Eigen::ArrayXd>& g;
+  std::vector<DynamicState<Eigen::ArrayXd>> s;
 };
 
 
@@ -377,7 +205,7 @@ protected:
  */
 class MultistageIntegrator : public ForwardIntegrator {
 public:
-  MultistageIntegrator (DynamicalSystem& _system, const int32_t _level) :
+  MultistageIntegrator (DynamicalSystem<Eigen::ArrayXd>& _system, const int32_t _level) :
     ForwardIntegrator(_system, 1, _level)
   {
     // zero state set in parent constructor
@@ -394,7 +222,7 @@ protected:
  */
 class RichardsonEuler {
 public:
-  RichardsonEuler (DynamicalSystem& _system) {
+  RichardsonEuler (DynamicalSystem<Eigen::ArrayXd>& _system) {
 
   }
 
@@ -408,7 +236,7 @@ private:
  */
 class Euler : public MultistageIntegrator {
 public:
-  Euler (DynamicalSystem& _system, const int32_t _level) :
+  Euler (DynamicalSystem<Eigen::ArrayXd>& _system, const int32_t _level) :
     MultistageIntegrator(_system, _level)
   {
     // initial conditions set in parent constructor
@@ -422,7 +250,7 @@ public:
     s[0].x[g.getNumDerivs()] = g.getHighestDeriv(s[0].x[0]);
 
     // from that state, project forward
-    DynamicState newHead = EulerStep(s[0], _dt);
+    DynamicState<Eigen::ArrayXd> newHead = EulerStep(s[0], _dt);
 
     // add the new state to the head
     s.insert(s.begin(), newHead);
@@ -468,7 +296,7 @@ public:
  */
 class RK2 : public MultistageIntegrator {
 public:
-  RK2 (DynamicalSystem& _system, const int32_t _level) :
+  RK2 (DynamicalSystem<Eigen::ArrayXd>& _system, const int32_t _level) :
     MultistageIntegrator(_system, _level)
   {
     // initial conditions set in parent constructor
@@ -491,7 +319,7 @@ public:
     //DynamicState stage2(numDeriv,0,0);
 
     // from that state, project forward
-    DynamicState stage2 = EulerStep(s[0], alpha*_dt);
+    DynamicState<Eigen::ArrayXd> stage2 = EulerStep(s[0], alpha*_dt);
     stage2.x[numDeriv] = g.getHighestDeriv(stage2.x[0]);
 
     /*
@@ -517,7 +345,7 @@ public:
 
     // add a new state to the head
     //DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
-    DynamicState newHead = s[0].stepHelper();
+    DynamicState<Eigen::ArrayXd> newHead = s[0].stepHelper();
 
     // position updates via weighted average velocity
     const double oo2a = 1.0 / (2.0*alpha);
@@ -542,7 +370,7 @@ public:
  */
 class RK4 : public MultistageIntegrator {
 public:
-  RK4 (DynamicalSystem& _system, const int32_t _level) :
+  RK4 (DynamicalSystem<Eigen::ArrayXd>& _system, const int32_t _level) :
     MultistageIntegrator(_system, _level)
   {
     // initial conditions set in parent constructor
@@ -577,7 +405,7 @@ public:
     // first step: set stage 1 to the last solution (now s[1])
 
     // second step: project forward a half step using that acceleration
-    DynamicState stage2 = s[0].stepHelper();
+    DynamicState<Eigen::ArrayXd> stage2 = s[0].stepHelper();
     for (int32_t d=0; d<nd; d++) stage2.x[d] += hdt*s[0].x[d+1];
     //for (int32_t d=0; d<nd; d++) stage2.x[d] = s[0].x[d] + hdt*s[0].x[d+1];
     //stage2.x[0] = s[0].x[0] + hdt*s[0].x[1];
@@ -585,7 +413,7 @@ public:
     stage2.x[nd] = g.getHighestDeriv(stage2.x[0]);
 
     // third step: project forward a half step from initial using the new acceleration
-    DynamicState stage3 = s[0].stepHelper();
+    DynamicState<Eigen::ArrayXd> stage3 = s[0].stepHelper();
     for (int32_t d=0; d<nd; d++) stage3.x[d] += hdt*stage2.x[d+1];
     //DynamicState stage3(nd,0,0);
     //stage3.x[0] = s[0].x[0] + hdt*stage2.x[1];
@@ -593,7 +421,7 @@ public:
     stage3.x[nd] = g.getHighestDeriv(stage3.x[0]);
 
     // fourth step: project forward a full step from initial using the newest acceleration
-    DynamicState stage4 = s[0].stepHelper();
+    DynamicState<Eigen::ArrayXd> stage4 = s[0].stepHelper();
     for (int32_t d=0; d<nd; d++) stage4.x[d] += _dt*stage3.x[d+1];
     //DynamicState stage4(nd,0,0);
     //stage4.x[0] = s[0].x[0] + _dt*stage3.x[1];
@@ -602,7 +430,7 @@ public:
 
     // add a new state to the head
     //DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
-    DynamicState newHead = s[0].stepHelper();
+    DynamicState<Eigen::ArrayXd> newHead = s[0].stepHelper();
 
     for (int32_t d=0; d<nd; d++) {
       newHead.x[d] += _dt * (s[0].x[d+1] + 2.0*stage2.x[d+1] + 2.0*stage3.x[d+1] + stage4.x[d+1]) / 6.0;
@@ -627,7 +455,7 @@ public:
  */
 class MultistepIntegrator : public ForwardIntegrator {
 public:
-  MultistepIntegrator (const int32_t _nsteps, DynamicalSystem& _system, const int32_t _level, const double _dt) :
+  MultistepIntegrator (const int32_t _nsteps, DynamicalSystem<Eigen::ArrayXd>& _system, const int32_t _level, const double _dt) :
     ForwardIntegrator(_system, _nsteps, _level)
   {
     // zero state set in parent constructor
@@ -651,7 +479,7 @@ public:
  */
 class AB2 : public MultistepIntegrator {
 public:
-  AB2 (DynamicalSystem& _system, const int32_t _level, const double _dt) :
+  AB2 (DynamicalSystem<Eigen::ArrayXd>& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator(2, _system, _level, _dt)
   {}
   
@@ -666,7 +494,7 @@ public:
     s[0].x[numDerivs] = g.getHighestDeriv(s[0].x[0]);
 
     // add a new state to the head
-    DynamicState newHead = s[0].stepHelper();
+    DynamicState<Eigen::ArrayXd> newHead = s[0].stepHelper();
     s.insert(s.begin(), newHead);
 
     // perform forward integration: AB2 for first one down, AM2 for all others
@@ -690,7 +518,7 @@ public:
  */
 class AB4 : public MultistepIntegrator {
 public:
-  AB4 (DynamicalSystem& _system, const int32_t _level, const double _dt) :
+  AB4 (DynamicalSystem<Eigen::ArrayXd>& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator(4, _system, _level, _dt)
   {}
 
@@ -701,7 +529,7 @@ public:
     s[0].x[nd] = g.getHighestDeriv(s[0].x[0]);
 
     // add a new one to the head
-    DynamicState newHead = s[0].stepHelper();
+    DynamicState<Eigen::ArrayXd> newHead = s[0].stepHelper();
     s.insert(s.begin(), newHead);
 
     // perform forward integration: AB4 for first, AM4 for all lower-order derivatives
@@ -725,7 +553,7 @@ public:
  */
 class AB5 : public MultistepIntegrator {
 public:
-  AB5 (DynamicalSystem& _system, const int32_t _level, const double _dt) :
+  AB5 (DynamicalSystem<Eigen::ArrayXd>& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator(5, _system, _level, _dt)
   {}
 
@@ -736,7 +564,7 @@ public:
     s[0].x[nd] = g.getHighestDeriv(s[0].x[0]);
 
     // add a new one to the head
-    DynamicState newHead = s[0].stepHelper();
+    DynamicState<Eigen::ArrayXd> newHead = s[0].stepHelper();
     s.insert(s.begin(), newHead);
 
     // perform forward integration: AB5 for first, AM5 for all lower-order derivatives
@@ -760,7 +588,7 @@ public:
  */
 class Verlet : public MultistepIntegrator {
 public:
-  Verlet (AccelerationSystem& _system, const int32_t _level, const double _dt) :
+  Verlet (AccelerationSystem<Eigen::ArrayXd>& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator(2, _system, _level, _dt)
   {}
   
@@ -768,7 +596,7 @@ public:
     s[0].x[2] = g.getHighestDeriv(s[0].x[0]);
 
     // add a new one to the head
-    DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
+    DynamicState<Eigen::ArrayXd> newHead(g.getNumDerivs(), s[0].level, s[0].step++);
     s.insert(s.begin(), newHead);
 
     // perform forward integration
@@ -787,7 +615,7 @@ public:
  */
 class RichardsonVerlet : public MultistepIntegrator {
 public:
-  RichardsonVerlet (AccelerationSystem& _system, const int32_t _level, const double _dt) :
+  RichardsonVerlet (AccelerationSystem<Eigen::ArrayXd>& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator(4, _system, _level, _dt)
   {}
 
@@ -795,7 +623,7 @@ public:
     s[0].x[2] = g.getHighestDeriv(s[0].x[0]);
 
     // add a new one to the head
-    DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
+    DynamicState<Eigen::ArrayXd> newHead(g.getNumDerivs(), s[0].level, s[0].step++);
     s.insert(s.begin(), newHead);
 
     // perform forward integration
@@ -820,7 +648,7 @@ public:
  */
 class Hamming416 : public MultistepIntegrator {
 public:
-  Hamming416 (AccelerationSystem& _system, const int32_t _level, const double _dt) :
+  Hamming416 (AccelerationSystem<Eigen::ArrayXd>& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator(4, _system, _level, _dt)
   {}
   
@@ -828,7 +656,7 @@ public:
     s[0].x[2] = g.getHighestDeriv(s[0].x[0]);
 
     // add a new one to the head
-    DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
+    DynamicState<Eigen::ArrayXd> newHead(g.getNumDerivs(), s[0].level, s[0].step++);
     s.insert(s.begin(), newHead);
 
     // perform forward integration
@@ -850,7 +678,7 @@ public:
  */
 class Hamming418 : public MultistepIntegrator {
 public:
-  Hamming418 (AccelerationSystem& _system, const int32_t _level, const double _dt) :
+  Hamming418 (AccelerationSystem<Eigen::ArrayXd>& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator(2, _system, _level, _dt)
   {}
   
@@ -858,7 +686,7 @@ public:
     s[0].x[2] = g.getHighestDeriv(s[0].x[0]);
 
     // add a new one to the head
-    DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
+    DynamicState<Eigen::ArrayXd> newHead(g.getNumDerivs(), s[0].level, s[0].step++);
     s.insert(s.begin(), newHead);
 
     // perform forward integration
