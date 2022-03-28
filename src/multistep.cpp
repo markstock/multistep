@@ -8,6 +8,7 @@
 #include "DynamicalSystem.hpp"
 #include "NBodyVort2D.hpp"
 #include "NBodyGrav3D.hpp"
+#include "ForwardIntegrator.hpp"
 
 #include <Eigen/Dense>
 
@@ -18,88 +19,12 @@
 
 
 /*
- * General forward integrator class
- */
-class ForwardIntegrator {
-public:
-  ForwardIntegrator (DynamicalSystem<Eigen::ArrayXd>& _system, const int32_t _nstates, const int32_t _level) :
-    g(_system),
-    s(_nstates, DynamicState<Eigen::ArrayXd>(_system.getNumDerivs(), _level, 0))
-  {
-    // set the zero state
-    s[0] = g.getInit();
-  }
-
-  // derived classes must define this method
-  virtual void stepForward (const double _dt) = 0;
-
-  // building block of many algorithms --- will only modify start if we solve for highest derivs
-  DynamicState<Eigen::ArrayXd> EulerStep(DynamicState<Eigen::ArrayXd> initial, DynamicState<Eigen::ArrayXd> derivs, const double _dt) {
-
-    // create the state with copies of the lower derivatives
-    DynamicState<Eigen::ArrayXd> next = initial.stepHelper();
-
-    // find the highest derivative - nope
-    //initial.x[g.getNumDerivs()] = g.getHighestDeriv(start.x[0]);
-
-    // step all lower derivatives forward
-    for (int32_t nd=0; nd<g.getNumDerivs(); nd++) {
-      double factor = 1.0;
-      for (int32_t d=nd; d>=0; d--) {
-        factor *= _dt / (nd-d+1);
-        next.x[d] += factor * derivs.x[nd+1];
-      }
-    }
-
-    // find the highest derivative - nope, again
-    //next.x[g.getNumDerivs()] = g.getHighestDeriv(next.x[0]);
-
-    // return the state
-    return next;
-  }
-
-  DynamicState<Eigen::ArrayXd> EulerStep(DynamicState<Eigen::ArrayXd> start, const double _dt) {
-    // call the general routine
-    return EulerStep(start, start, _dt);
-  }
-
-  Eigen::ArrayXd getPosition () {
-    return s[0].getPos();
-  }
-
-  Eigen::ArrayXd getVelocity () {
-    return s[0].getVel();
-  }
-
-  Eigen::ArrayXd getDeriv (const int32_t deriv) {
-    try {
-      return s[0].x[deriv];
-    } catch (std::exception& e) {
-      std::cout << "Standard exception: " << e.what() << std::endl;
-      return Eigen::ArrayXd(0);
-    }
-  }
-
-  double getError (const Eigen::ArrayXd _trueSolution) {
-    Eigen::ArrayXd temp = _trueSolution-getPosition();
-    return( temp.matrix().norm() / std::sqrt(temp.size()) );
-  }
-
-protected:
-  // saves the reference to the system to be integrated
-  DynamicalSystem<Eigen::ArrayXd>& g;
-  // and a series of states (current and previous) to store
-  std::vector<DynamicState<Eigen::ArrayXd>> s;
-};
-
-
-/*
  * Multi-stage forward integrator class (Euler, Runge-Kutta)
  */
-class MultistageIntegrator : public ForwardIntegrator {
+class MultistageIntegrator : public ForwardIntegrator<Eigen::ArrayXd> {
 public:
   MultistageIntegrator (DynamicalSystem<Eigen::ArrayXd>& _system, const int32_t _level) :
-    ForwardIntegrator(_system, 1, _level)
+    ForwardIntegrator<Eigen::ArrayXd>(_system, 1, _level)
   {
     // zero state set in parent constructor
   }
@@ -349,10 +274,10 @@ public:
 /*
  * Multi-step forward integrator class (saves previous solutions)
  */
-class MultistepIntegrator : public ForwardIntegrator {
+class MultistepIntegrator : public ForwardIntegrator<Eigen::ArrayXd> {
 public:
   MultistepIntegrator (const int32_t _nsteps, DynamicalSystem<Eigen::ArrayXd>& _system, const int32_t _level, const double _dt) :
-    ForwardIntegrator(_system, _nsteps, _level)
+    ForwardIntegrator<Eigen::ArrayXd>(_system, _nsteps, _level)
   {
     // zero state set in parent constructor
     // set the previous states here
