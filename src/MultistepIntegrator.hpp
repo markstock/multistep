@@ -12,6 +12,7 @@
 #include "MultistageIntegrator.hpp"
 
 #include <cstdint>
+#include <cassert>
 #include <iostream>
 
 
