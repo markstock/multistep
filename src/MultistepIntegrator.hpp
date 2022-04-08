@@ -161,11 +161,16 @@ public:
 template <class T>
 class Verlet : public MultistepIntegrator<T> {
 public:
-  Verlet (AccelerationSystem<T>& _system, const int32_t _level, const double _dt) :
+  Verlet (DynamicalSystem<T>& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator<T>(2, _system, _level, _dt)
-  {}
+  {
+    // prevent construction on a Velocity system?
+    //assert(_system.hasAccel() && "Verlet cannot accept a VelocitySystem");
+  }
   
   void stepForward (const double _dt) {
+    assert(this->g.hasAccel() && "Verlet cannot integrate a VelocitySystem");
+
     this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
 
     // add a new one to the head
@@ -190,11 +195,16 @@ public:
 template <class T>
 class RichardsonVerlet : public MultistepIntegrator<T> {
 public:
-  RichardsonVerlet (AccelerationSystem<T>& _system, const int32_t _level, const double _dt) :
+  RichardsonVerlet (DynamicalSystem<T>& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator<T>(4, _system, _level, _dt)
-  {}
+  {
+    // prevent construction on a Velocity system?
+    //assert(_system.hasAccel() && "RichardsonVerlet cannot accept a VelocitySystem");
+  }
 
   void stepForward (const double _dt) {
+    assert(this->g.hasAccel() && "RichardsonVerlet cannot integrate a VelocitySystem");
+
     this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
 
     // add a new one to the head
@@ -225,11 +235,16 @@ public:
 template <class T>
 class Hamming416 : public MultistepIntegrator<T> {
 public:
-  Hamming416 (AccelerationSystem<T>& _system, const int32_t _level, const double _dt) :
+  Hamming416 (DynamicalSystem<T>& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator<T>(4, _system, _level, _dt)
-  {}
+  {
+    // prevent construction on a Velocity system?
+    //assert(_system.hasAccel() && "Hamming416 cannot accept a VelocitySystem");
+  }
   
   void stepForward (const double _dt) {
+    assert(this->g.hasAccel() && "Hamming416 cannot integrate a VelocitySystem");
+
     this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
 
     // add a new one to the head
@@ -257,11 +272,16 @@ public:
 template <class T>
 class Hamming418 : public MultistepIntegrator<T> {
 public:
-  Hamming418 (AccelerationSystem<T>& _system, const int32_t _level, const double _dt) :
+  Hamming418 (DynamicalSystem<T>& _system, const int32_t _level, const double _dt) :
     MultistepIntegrator<T>(2, _system, _level, _dt)
-  {}
+  {
+    // prevent construction on a Velocity system?
+    //assert(_system.hasAccel() && "Hamming418 cannot accept a VelocitySystem");
+  }
   
   void stepForward (const double _dt) {
+    assert(this->g.hasAccel() && "Hamming418 cannot integrate a VelocitySystem");
+
     this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
 
     // add a new one to the head
