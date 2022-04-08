@@ -53,6 +53,9 @@ public:
     // find the highest derivative - nope, again
     //next.x[g.getNumDerivs()] = g.getHighestDeriv(next.x[0]);
 
+    // set the time at the new DynamicState
+    next.time += _dt;
+
     // return the state
     return next;
   }
@@ -70,6 +73,15 @@ public:
     return s[0].getVel();
   }
 
+  double getTime (const size_t _idx) {
+    assert(_idx < s.size() && "Asking for improper index into DynamicState");
+    return s[_idx].getTime();
+  }
+
+  double getTime () {
+    return s[0].getTime();
+  }
+
   T getDeriv (const int32_t deriv) {
     try {
       return s[0].x[deriv];
@@ -81,13 +93,14 @@ public:
 
   double getError (const T _trueSolution) {
     T temp = _trueSolution-getPosition();
-    return( temp.matrix().norm() / std::sqrt(temp.size()) );
+    return( g.getErrorNorm(temp) / std::sqrt(g.getSize()) );
+    //return( temp.matrix().norm() / std::sqrt(temp.size()) );
   }
 
 protected:
   // saves the reference to the system to be integrated
   DynamicalSystem<T>& g;
-  // and a series of states (current and previous) to store
+  // and a series of states (current (0) and previous (1..)) to store
   std::vector<DynamicState<T>> s;
 };
 

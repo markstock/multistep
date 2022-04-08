@@ -28,7 +28,9 @@ public:
   {}
 
   DynamicState(const int32_t _highestDeriv, const int32_t _level, const int32_t _step) :
-    level(_level), step(_step),
+    time(0.0),
+    level(_level),
+    step(_step),
     x(1+_highestDeriv, T())
   {
     // do not initialize the arrays now, wait for later
@@ -40,20 +42,29 @@ public:
   DynamicState stepHelper() {
     // make the new object here
     DynamicState next(x.size()-1, level, step);
+
     // copy value and all derivatives
     for (size_t i=0; i<x.size(); i++) {
       next.x[i] = x[i];
     }
+
     // highest derivative array is left as zeros
     //next.x[x.size()-1] = ArrayXd::Zero(x[0].size());
     next.x[x.size()-1] = 0.0;
     // finally, advance the step by one
     next.step++;
+    // advance the "time" later
+    next.time = time;
+
     return next;
   }
 
-  double getFloatStep () {
+  double getTimeStep () {
     return step * std::pow(2.0, level);
+  }
+
+  double getTime () {
+    return time;
   }
 
   T getPos(void) {
@@ -90,6 +101,8 @@ public:
     }
   }
 
+  // precise time of this state
+  double time;
   // level 0 is at base dt, level 1 is at 2*dt, level -1 at 0.5*dt
   int32_t level;
   // step is time step within that level

@@ -32,7 +32,7 @@ public:
   };
 
   // perform n-body acceleration calculation; uses position and mass and radius squared
-  Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos) {
+  Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos, const double _time) {
 
     // create the accumulator vector
     Eigen::ArrayXd newVels = Eigen::ArrayXd::Zero(numVars);
@@ -55,6 +55,11 @@ public:
       }
     }
     return newVels;
+  }
+
+  // find the error norm
+  double getErrorNorm(const Eigen::ArrayXd _delta) {
+    return _delta.matrix().norm();
   }
 
 private:

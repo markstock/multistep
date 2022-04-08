@@ -34,7 +34,7 @@ public:
       for (int32_t deriv=0; deriv<this->g.getNumDerivs(); deriv++) {
         this->s[istep].x[deriv] = r.getDeriv(deriv);
       }
-      this->s[istep].x[this->g.getNumDerivs()] = this->g.getHighestDeriv(this->s[istep].x[0]);
+      this->s[istep].x[this->g.getNumDerivs()] = this->g.getHighestDeriv(this->s[istep].x[0], this->getTime(istep));
     }
   }
 };
@@ -58,10 +58,11 @@ public:
     const int32_t numDerivs = this->g.getNumDerivs();
 
     // ask the system to find its new highest-level derivative
-    this->s[0].x[numDerivs] = this->g.getHighestDeriv(this->s[0].x[0]);
+    this->s[0].x[numDerivs] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
 
     // add a new state to the head
     DynamicState<T> newHead = this->s[0].stepHelper();
+    newHead.time += _dt;
     this->s.insert(this->s.begin(), newHead);
 
     // perform forward integration: AB2 for first one down, AM2 for all others
@@ -94,10 +95,11 @@ public:
   void stepForward (const double _dt) {
     const int32_t nd = this->g.getNumDerivs();
 
-    this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0]);
+    this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
 
     // add a new one to the head
     DynamicState<T> newHead = this->s[0].stepHelper();
+    newHead.time += _dt;
     this->s.insert(this->s.begin(), newHead);
 
     // perform forward integration: AB4 for first, AM4 for all lower-order derivatives
@@ -130,10 +132,11 @@ public:
   void stepForward (const double _dt) {
     const int32_t nd = this->g.getNumDerivs();
 
-    this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0]);
+    this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
 
     // add a new one to the head
     DynamicState<T> newHead = this->s[0].stepHelper();
+    newHead.time += _dt;
     this->s.insert(this->s.begin(), newHead);
 
     // perform forward integration: AB5 for first, AM5 for all lower-order derivatives
@@ -163,10 +166,11 @@ public:
   {}
   
   void stepForward (const double _dt) {
-    this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0]);
+    this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
 
     // add a new one to the head
     DynamicState<T> newHead(this->g.getNumDerivs(), this->s[0].level, this->s[0].step++);
+    newHead.time += _dt;
     this->s.insert(this->s.begin(), newHead);
 
     // perform forward integration
@@ -191,10 +195,11 @@ public:
   {}
 
   void stepForward (const double _dt) {
-    this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0]);
+    this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
 
     // add a new one to the head
     DynamicState<T> newHead(this->g.getNumDerivs(), this->s[0].level, this->s[0].step++);
+    newHead.time += _dt;
     this->s.insert(this->s.begin(), newHead);
 
     // perform forward integration
@@ -225,10 +230,11 @@ public:
   {}
   
   void stepForward (const double _dt) {
-    this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0]);
+    this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
 
     // add a new one to the head
     DynamicState<T> newHead(this->g.getNumDerivs(), this->s[0].level, this->s[0].step++);
+    newHead.time += _dt;
     this->s.insert(this->s.begin(), newHead);
 
     // perform forward integration
@@ -256,10 +262,11 @@ public:
   {}
   
   void stepForward (const double _dt) {
-    this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0]);
+    this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
 
     // add a new one to the head
     DynamicState<T> newHead(this->g.getNumDerivs(), this->s[0].level, this->s[0].step++);
+    newHead.time += _dt;
     this->s.insert(this->s.begin(), newHead);
 
     // perform forward integration

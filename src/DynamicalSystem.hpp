@@ -23,12 +23,14 @@ public:
 
   // number of derivatives in the dynamic state
   virtual int32_t getNumDerivs(void) = 0;
+  int32_t getSize(void) { return numVars; };
 
   // return the initial state
   virtual DynamicState<T> getInit(void) = 0;
 
   virtual bool hasAccel(void) = 0;
-  virtual T getHighestDeriv(const T pos) = 0;
+  virtual T getHighestDeriv(const T pos, const double time) = 0;
+  virtual double getErrorNorm(const T pos) = 0;
 
 protected:
   // number of equations in the system
@@ -57,7 +59,6 @@ public:
   DynamicState<T> getInit() { return ic; }
 
   bool hasAccel(void) { return false; }
-  //virtual Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos) = 0;
 
 protected:
   // must define and store initial state
@@ -86,7 +87,6 @@ public:
   DynamicState<T> getInit() { return ic; }
 
   bool hasAccel(void) { return true; }
-  //virtual Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos) = 0;
 
 protected:
   // must define and store initial state
