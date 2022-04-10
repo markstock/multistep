@@ -74,7 +74,7 @@ public:
     try {
       return x[0];
     } catch (std::exception& e) {
-      std::cout << "Standard exception: " << e.what() << std::endl;
+      std::cout << "No position: " << e.what() << std::endl;
       return T(0);
     }
     //if (x.size() > 0) return x[0];
@@ -87,7 +87,7 @@ public:
     try {
       return x[1];
     } catch (std::exception& e) {
-      std::cout << "Standard exception: " << e.what() << std::endl;
+      std::cout << "No velocity: " << e.what() << std::endl;
     }
   }
 
@@ -97,8 +97,12 @@ public:
     try {
       return x[2];
     } catch (std::exception& e) {
-      std::cout << "Standard exception: " << e.what() << std::endl;
+      std::cout << "No acceleration: " << e.what() << std::endl;
     }
+  }
+
+  std::vector<T> getState(void) {
+    return x;
   }
 
   // precise time of this state

@@ -9,6 +9,7 @@
 #include "NBodyVort2D.hpp"
 #include "NBodyGrav3D.hpp"
 #include "SineWave.hpp"
+#include "SpringMass.hpp"
 #include "ForwardIntegrator.hpp"
 #include "MultistageIntegrator.hpp"
 #include "MultistepIntegrator.hpp"
@@ -46,24 +47,22 @@ private:
 // Create a system and an integrator
 int main () {
 
-  // define the dynamical system
-  VelocitySine s(10.0/9.25);
-  //AccelerationSine s(10.0);
-  //NBodyGrav3D s(100);
-  //NBodyVort2D vort(100);
-
   const bool dumpevery = false;
   const bool doHamming = false;
+  const double endtime = 10.0;
 
-  // find the "exact" solution for AB4 - use this as the exact solution for everyone
-  int32_t maxSteps = 10000;
-  double dt = 10.0 / maxSteps;
-  AB5<TEMPLATEVAR> exact(s,0,dt);
-  std::cout << "'Exact' solution is from running " << maxSteps << " steps of AB5 at dt= " << dt << std::endl;
-  for (int32_t i=0; i<maxSteps; ++i) {
-    exact.stepForward(dt);
-    //ev.stepForward(dt);
-  }
+  // define the dynamical system
+  //VelocitySine s(endtime/9.25);
+  //AccelerationSine s(endtime/9.25);
+  SpringMass s(endtime/9.25);
+  //AccelerationSine s(endtime/1.25);
+  //AccelerationSine s(2.0*M_PI);
+  //AccelerationSine s(endtime*4);
+  //NBodyGrav3D s(10);
+  //NBodyVort2D s(10);
+
+  // find the "exact" solution and save it for reuse
+  TEMPLATEVAR exact = s.getExact(endtime);
 
   std::cout << "steps\t";
   std::cout << "Euler\t\t";
@@ -80,11 +79,11 @@ int main () {
   std::cout << std::endl;
 
   // integrate using the various methods
-  for (maxSteps = 12; maxSteps < 15000; maxSteps *= 2) {
-  //for (maxSteps = 12; maxSteps < 15; maxSteps *= 2) {
-  //for (maxSteps = 100; maxSteps < 105; maxSteps *= 2) {
+  for (int32_t maxSteps = 12; maxSteps < 100000; maxSteps *= 2) {
+  //for (int32_t maxSteps = 12; maxSteps < 15; maxSteps *= 2) {
+  //for (int32_t maxSteps = 100; maxSteps < 105; maxSteps *= 2) {
 
-    dt = 10.0 / maxSteps;
+    const double dt = endtime / maxSteps;
     if (dumpevery) std::cout << "Running " << maxSteps << " steps at dt= " << dt << std::endl;
 
     std::cout << maxSteps;
@@ -97,11 +96,11 @@ int main () {
         e.stepForward(dt);
         if (dumpevery) std::cout << "e at t " << e.getTime() << " is " << e.getPosition() << "\n";
       }
-      TEMPLATEVAR eSolution = e.getPosition();
+      //TEMPLATEVAR eSolution = e.getPosition();
       //std::cout << "  Euler solution: " << eSolution << std::endl;
       //std::cout << "  Euler solution: " << eSolution << std::endl;
       //std::cout << "  Error in Euler is " << exact.getError(eSolution) << std::endl;
-      std::cout << "\t" << exact.getError(eSolution);
+      std::cout << "\t" << e.getError(exact);
     }
 
     {
@@ -112,11 +111,11 @@ int main () {
           if (dumpevery) std::cout << "rk2 at t " << r2.getTime() << " is " << r2.getPosition() << "\n";
         }
       }
-      TEMPLATEVAR r2Solution = r2.getPosition();
+      //TEMPLATEVAR r2Solution = r2.getPosition();
       //std::cout << "  RK2 solution: " << r2Solution << std::endl;
       //std::cout << "  RK2 solution: " << r2Solution.segment(0,4).transpose() << std::endl;
       //std::cout << "  Error in RK2 is " << exact.getError(r2Solution) << std::endl;
-      std::cout << "\t" << exact.getError(r2Solution);
+      std::cout << "\t" << r2.getError(exact);
     }
 
     {
@@ -125,10 +124,10 @@ int main () {
         a2.stepForward(dt);
         if (dumpevery) std::cout << "ab2 at t " << a2.getTime() << " is " << a2.getPosition() << "\n";
       }
-      TEMPLATEVAR a2Solution = a2.getPosition();
+      //TEMPLATEVAR a2Solution = a2.getPosition();
       //std::cout << "  ABM2 solution: " << a2Solution.segment(0,4).transpose() << std::endl;
       //std::cout << "  Error in ABM2 is " << exact.getError(a2Solution) << std::endl;
-      std::cout << "\t" << exact.getError(a2Solution);
+      std::cout << "\t" << a2.getError(exact);
     }
 
     if (s.hasAccel()) {
@@ -137,10 +136,10 @@ int main () {
         ve.stepForward(dt);
         if (dumpevery) std::cout << "ve at t " << ve.getTime() << " is " << ve.getPosition() << "\n";
       }
-      TEMPLATEVAR vSolution = ve.getPosition();
+      //TEMPLATEVAR vSolution = ve.getPosition();
       //std::cout << "  Verlet solution: " << vSolution.segment(0,4).transpose() << std::endl;
       //std::cout << "  Error in Verlet is " << exact.getError(vSolution) << std::endl;
-      std::cout << "\t" << exact.getError(vSolution);
+      std::cout << "\t" << ve.getError(exact);
     }
 
     {
@@ -151,10 +150,10 @@ int main () {
           if (dumpevery) std::cout << "rk3 at t " << r3.getTime() << " is " << r3.getPosition() << "\n";
         }
       }
-      TEMPLATEVAR r3Solution = r3.getPosition();
+      //TEMPLATEVAR r3Solution = r3.getPosition();
       //std::cout << "  RK3 solution: " << r3Solution.segment(0,4).transpose() << std::endl;
       //std::cout << "  Error in RK3 is " << exact.getError(r3Solution) << std::endl;
-      std::cout << "\t" << exact.getError(r3Solution);
+      std::cout << "\t" << r3.getError(exact);
     }
 
     {
@@ -165,10 +164,10 @@ int main () {
           if (dumpevery) std::cout << "rk4 at t " << r4.getTime() << " is " << r4.getPosition() << "\n";
         }
       }
-      TEMPLATEVAR r4Solution = r4.getPosition();
+      //TEMPLATEVAR r4Solution = r4.getPosition();
       //std::cout << "  RK4 solution: " << r4Solution.segment(0,4).transpose() << std::endl;
       //std::cout << "  Error in RK4 is " << exact.getError(r4Solution) << std::endl;
-      std::cout << "\t" << exact.getError(r4Solution);
+      std::cout << "\t" << r4.getError(exact);
     }
 
     {
@@ -177,10 +176,10 @@ int main () {
         ab.stepForward(dt);
         if (dumpevery) std::cout << "ab4 at t " << ab.getTime() << " is " << ab.getPosition() << "\n";
       }
-      TEMPLATEVAR abSolution = ab.getPosition();
+      //TEMPLATEVAR abSolution = ab.getPosition();
       //std::cout << "  ABM4 solution: " << abSolution.segment(0,4).transpose() << std::endl;
       //std::cout << "  Error in ABM4 is " << exact.getError(abSolution) << std::endl;
-      std::cout << "\t" << exact.getError(abSolution);
+      std::cout << "\t" << ab.getError(exact);
     }
 
     if (s.hasAccel()) {
@@ -189,10 +188,10 @@ int main () {
         rv.stepForward(dt);
         if (dumpevery) std::cout << "rv at t " << rv.getTime() << " is " << rv.getPosition() << "\n";
       }
-      TEMPLATEVAR rvSolution = rv.getPosition();
+      //TEMPLATEVAR rvSolution = rv.getPosition();
       //std::cout << "  RichardsonVerlet solution: " << sSolution.segment(0,4).transpose() << std::endl;
       //std::cout << "  Error in RichardsonVerlet is " << exact.getError(sSolution) << std::endl;
-      std::cout << "\t" << exact.getError(rvSolution);
+      std::cout << "\t" << rv.getError(exact);
     }
 
     if (s.hasAccel() and doHamming) {
@@ -200,8 +199,8 @@ int main () {
       for (int32_t i=0; i<maxSteps; ++i) {
         h6.stepForward(dt);
       }
-      TEMPLATEVAR h6Solution = h6.getPosition();
-      std::cout << "\t" << exact.getError(h6Solution);
+      //templatevar h6solution = h6.getposition();
+      std::cout << "\t" << h6.getError(exact);
     }
 
     if (s.hasAccel() and doHamming) {
@@ -209,8 +208,8 @@ int main () {
       for (int32_t i=0; i<maxSteps; ++i) {
         h8.stepForward(dt);
       }
-      TEMPLATEVAR h8Solution = h8.getPosition();
-      std::cout << "\t" << exact.getError(h8Solution);
+      //templatevar h8solution = h8.getposition();
+      std::cout << "\t" << h8.getError(exact);
     }
 
     {
@@ -219,8 +218,8 @@ int main () {
         abb.stepForward(dt);
         if (dumpevery) std::cout << "ab5 at t " << abb.getTime() << " is " << abb.getPosition() << "\n";
       }
-      TEMPLATEVAR abbSolution = abb.getPosition();
-      std::cout << "\t" << exact.getError(abbSolution);
+      //templatevar abbsolution = abb.getposition();
+      std::cout << "\t" << abb.getError(exact);
     }
 
     std::cout << std::endl;

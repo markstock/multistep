@@ -74,6 +74,10 @@ public:
     return s[0].getVel();
   }
 
+  std::vector<T> getState () {
+    return s[0].getState();
+  }
+
   double getTime (const size_t _idx) {
     assert(_idx < s.size() && "Asking for improper index into DynamicState");
     return s[_idx].getTime();

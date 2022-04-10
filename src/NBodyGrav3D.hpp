@@ -1,10 +1,11 @@
 /*
- * NBodyGrav3D.hpp - a simple gravitational system
+ * NBodyGrav3D.hpp - a simple 3D gravitational system
  *
  * Copyright 2016,22 Mark J. Stock, markjstock@gmail.com
  */
 
 #include "DynamicalSystem.hpp"
+#include "MultistageIntegrator.hpp"
 
 #include <Eigen/Dense>
 
@@ -56,6 +57,29 @@ public:
       }
     }
     return newVal;
+  }
+
+  // use the best method to approximate the final state
+  Eigen::ArrayXd getExact(const double _endtime) {
+    int32_t maxSteps = 10000;
+    double dt = _endtime / maxSteps;
+    RK4<Eigen::ArrayXd> exact(*this,0);
+    std::cout << "'Exact' solution is from running " << maxSteps << " steps of RK4 at dt= " << dt << std::endl;
+    for (int32_t i=0; i<maxSteps; ++i) {
+      exact.stepForward(dt);
+    }
+    return exact.getPosition();
+  }
+
+  // return all state at the given time (here: pos, vel, acc)
+  std::vector<Eigen::ArrayXd> getState(const double _endtime) {
+    int32_t maxSteps = 10000;
+    double dt = _endtime / maxSteps;
+    RK4<Eigen::ArrayXd> exact(*this,0);
+    for (int32_t i=0; i<maxSteps; ++i) {
+      exact.stepForward(dt);
+    }
+    return exact.getState();
   }
 
   // find the error norm

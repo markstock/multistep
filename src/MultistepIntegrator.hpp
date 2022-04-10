@@ -25,17 +25,13 @@ public:
   MultistepIntegrator (const int32_t _nsteps, DynamicalSystem<T>& _system, const int32_t _level, const double _dt) :
     ForwardIntegrator<T>(_system, _nsteps, _level)
   {
-    // zero state set in parent constructor
-    // set the previous states here
-    RK4<T> r(this->g,0);
-    //std::cout << "in MultistepIntegrator::MultistepIntegrator " << r.getPosition().segment(0,4).transpose() << std::endl;
+    // the t=0 state is set in parent constructor
+    // previous states are set here by calling the system's getExact function
     for (int32_t istep=1; istep<_nsteps; ++istep) {
-      for (int32_t i=0; i<100; ++i) r.stepForward(-0.01 * _dt);
+      const double thistime = -1.0 * _dt * istep;
       this->s[istep].step = -istep;
-      for (int32_t deriv=0; deriv<this->g.getNumDerivs(); deriv++) {
-        this->s[istep].x[deriv] = r.getDeriv(deriv);
-      }
-      this->s[istep].x[this->g.getNumDerivs()] = this->g.getHighestDeriv(this->s[istep].x[0], this->getTime(istep));
+      this->s[istep].time = thistime;
+      this->s[istep].x = this->g.getState(thistime);
     }
   }
 };
@@ -175,7 +171,7 @@ public:
     this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
 
     // add a new one to the head
-    DynamicState<T> newHead(this->g.getNumDerivs(), this->s[0].level, this->s[0].step++);
+    DynamicState<T> newHead = this->s[0].stepHelper();
     newHead.time += _dt;
     this->s.insert(this->s.begin(), newHead);
 
@@ -209,7 +205,7 @@ public:
     this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
 
     // add a new one to the head
-    DynamicState<T> newHead(this->g.getNumDerivs(), this->s[0].level, this->s[0].step++);
+    DynamicState<T> newHead = this->s[0].stepHelper();
     newHead.time += _dt;
     this->s.insert(this->s.begin(), newHead);
 

@@ -5,10 +5,12 @@
  */
 
 #include "DynamicalSystem.hpp"
+#include "MultistageIntegrator.hpp"
 
 #include <Eigen/Dense>
 
 #include <cstdint>
+#include <iostream>
 
 
 /*
@@ -24,11 +26,11 @@ public:
 
     // we store the unchanging properties here
     circ = Eigen::ArrayXd::Random(num) / (2.0*num);
-    radiusSquared = 0.2 + 0.1 * Eigen::ArrayXd::Random(num);
+    radiusSquared = 0.1 + 0.1 * Eigen::ArrayXd::Random(num);
     radiusSquared = radiusSquared.square();
 
     // store initial conditions in case we want to reuse this
-    ic.x[0] = 10.0 * Eigen::ArrayXd::Random(numVars);
+    ic.x[0] = 1.0 * Eigen::ArrayXd::Random(numVars);
   };
 
   // perform n-body acceleration calculation; uses position and mass and radius squared
@@ -55,6 +57,29 @@ public:
       }
     }
     return newVels;
+  }
+
+  // use the best method to approximate the final state
+  Eigen::ArrayXd getExact(const double _endtime) {
+    int32_t maxSteps = 10000;
+    double dt = _endtime / maxSteps;
+    RK4<Eigen::ArrayXd> exact(*this,0);
+    std::cout << "'Exact' solution is from running " << maxSteps << " steps of RK4 at dt= " << dt << std::endl;
+    for (int32_t i=0; i<maxSteps; ++i) {
+      exact.stepForward(dt);
+    }
+    return exact.getPosition();
+  }
+
+  // return all state at the given time (here: pos, vel, acc)
+  std::vector<Eigen::ArrayXd> getState(const double _endtime) {
+    int32_t maxSteps = 10000;
+    double dt = _endtime / maxSteps;
+    RK4<Eigen::ArrayXd> exact(*this,0);
+    for (int32_t i=0; i<maxSteps; ++i) {
+      exact.stepForward(dt);
+    }
+    return exact.getState();
   }
 
   // find the error norm
