@@ -42,8 +42,9 @@ with Richardson-Verlet outperforming every other method on the simple spring-mas
 
 ![Error vs. time step, harmonic oscillator](doc/spring_results.png)
 
-Note that in the test program, the multi*stage* methods take 2x, 3x, and 4x longer
-time steps; this is so that we can compare the error to the computational effort,
+Note that in the test program and in the above plot, the multi*stage* methods take
+2x, 3x, and 4x longer time steps;
+this is so that we can compare the error to the computational effort,
 as those methods perform more derivative evaluations per time *step*.
 
 ### Future work
@@ -53,7 +54,6 @@ In the future, I hope to do the following:
 * build a linkable library and use that to generate executables
 * support multithreading and superscalar instructions for the nbody code (via templates)
 * add Bulirsch-Stoer integrator
-* clean up the code and simplify some usage
 * should calculation of the highest derivative come at the end of the current step or the beginning of the next one? The former would make for cleaner code.
 * include integrators with automatic time step adjustment (global first)
 * develop integrator with local (element-wise) time-stepping
