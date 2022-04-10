@@ -79,7 +79,7 @@ int main () {
   std::cout << std::endl;
 
   // integrate using the various methods
-  for (int32_t maxSteps = 12; maxSteps < 100000; maxSteps *= 2) {
+  for (int32_t maxSteps = 60; maxSteps < 130000; maxSteps *= 2) {
   //for (int32_t maxSteps = 12; maxSteps < 15; maxSteps *= 2) {
   //for (int32_t maxSteps = 100; maxSteps < 105; maxSteps *= 2) {
 
