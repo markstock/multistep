@@ -37,7 +37,10 @@ Compile and run multistep with the following commands on an RPM-based system:
     ./runmultistep
 
 ### Performance
-Short story: for gravitational systems, Verlet and Richardson-Verlet are the best.
+Short story: for gravitational systems, Verlet and Richardson-Verlet are the best,
+with Richardson-Verlet outperforming every other method on the simple spring-mass system.
+
+![Error vs. time step, harmonic oscillator](doc/spring_results.png)
 
 Note that in the test program, the multi*stage* methods take 2x, 3x, and 4x longer
 time steps; this is so that we can compare the error to the computational effort,
