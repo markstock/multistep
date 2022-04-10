@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <cmath>
 
@@ -77,6 +78,9 @@ int main () {
   if (s.hasAccel() and doHamming) std::cout << "Ham418\t\t";
   std::cout << "AB5";
   std::cout << std::endl;
+
+  // set precision for error output
+  std::cout << std::setprecision(8);
 
   // integrate using the various methods
   for (int32_t maxSteps = 60; maxSteps < 130000; maxSteps *= 2) {
