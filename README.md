@@ -60,3 +60,8 @@ In the future, I hope to do the following:
 * develop integrator with local (element-wise) time-stepping
 * calculate total effort/cost for integrators and derivative-finder
 * support systems which have forcing terms on derivatives other than the highest
+
+### Other ODE libraries
+We have to mention [BOOST's odeint](https://www.boost.org/doc/libs/1_78_0/libs/numeric/odeint/doc/html/index.html);
+and [odeint-2](https://github.com/headmyshoulder/odeint-v2) also looks good.
+
