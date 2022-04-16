@@ -8,56 +8,67 @@
 
 #include "DynamicalSystem.hpp"
 
+#include <Eigen/Dense>
+
+#include <cstdint>
 #include <cmath>
 
 /*
  * The right way to do a sine wave, as a solution to the spring-mass system
  */
-class SpringMass : public AccelerationSystem<double> {
+class SpringMass : public AccelerationSystem<Eigen::ArrayXd> {
 public:
-  SpringMass(const double _period) :
-    AccelerationSystem<double>(1),
-    period(_period)
+  SpringMass(const int32_t _num, const double _period) :
+    AccelerationSystem<Eigen::ArrayXd>(_num),
+    num(_num), avgperiod(_period)
   {
+    // set unique periods
+    period = avgperiod * (1.0 + 0.1*Eigen::ArrayXd::Random(num));
+
     // store initial conditions (position and velocity)
-    ic.x[0] = 0.0;
+    ic.x[0] = Eigen::ArrayXd::Zero(num);
     // v_0 = A sqrt(k / m) = 2 pi / period
     ic.x[1] = 2.0*M_PI/period;
   };
 
   // return the derivative at the given point
-  double getHighestDeriv(const double _pos, const double _time) {
+  Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd _pos, const double _time) {
     // period is 2 pi sqrt(m / k)
     // acceleration is -k x / m
     // which is -x (2 pi)^2 / P^2
     //return std::cos(std::asin(_pos))/period;
     // no, must use current time to determine this
-    double acc = -_pos * std::pow(2.0*M_PI/period,2);
+    Eigen::ArrayXd tmp = 2.0*M_PI / period;
+    Eigen::ArrayXd acc = -_pos * tmp.pow(2);
     //std::cout << "\n2nd deriv at t=" << _time << " is " << acc;
     return acc;
   }
 
   // just return theoretical exact position at the given time
-  double getExact(const double _endtime) {
-    return std::sin(2.0*M_PI*_endtime/period);
+  Eigen::ArrayXd getExact(const double _endtime) {
+    return Eigen::sin(2.0*M_PI*_endtime/period);
   }
 
   // return all state at the given time (here: pos, vel, acc)
-  std::vector<double> getState(const double _endtime) {
-    const double pos = getExact(_endtime);
-    std::vector<double> state({pos,
-                               (2.0*M_PI/period) * std::cos(2.0*M_PI*_endtime/period),
+  std::vector<Eigen::ArrayXd> getState(const double _endtime) {
+    const Eigen::ArrayXd pos = getExact(_endtime);
+    const Eigen::ArrayXd tmp = 2.0*M_PI / period;
+    std::vector<Eigen::ArrayXd> state({pos,
+                               tmp * Eigen::cos(tmp*_endtime),
                                getHighestDeriv(pos,_endtime)});
     return state;
   }
 
   // find the error norm
-  double getErrorNorm(const double _delta) {
-    //std::cout << "\n error is "
-    return std::abs(_delta);
+  double getErrorNorm(const Eigen::ArrayXd _delta) {
+    return _delta.matrix().norm();
   }
 
 protected:
-  const double period;
+  // number of bodies
+  int32_t num;
+  const double avgperiod;
+  Eigen::ArrayXd period;
+  //Eigen::ArrayXd xstart;
 };
 

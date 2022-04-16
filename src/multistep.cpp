@@ -57,7 +57,7 @@ int main () {
   // define the dynamical system
   //VelocitySine s(endtime/9.25);
   //AccelerationSine s(endtime/9.25);
-  //SpringMass s(endtime/9.25);
+  //SpringMass s(100,endtime/9.25);
   LennardJones s(100,1.0,0.02);
   //AccelerationSine s(endtime/1.25);
   //AccelerationSine s(2.0*M_PI);
@@ -86,10 +86,12 @@ int main () {
   std::cout << std::setprecision(8);
 
   // integrate using the various methods
-  for (int32_t maxSteps = 60; maxSteps < 130000; maxSteps *= 1.3) {
+  for (int32_t maxSteps = 60; maxSteps < 130000; maxSteps = 12*(int)(maxSteps*1.3/12.0)) {
   //for (int32_t maxSteps = 60; maxSteps < 130000; maxSteps *= 2) {
   //for (int32_t maxSteps = 12; maxSteps < 15; maxSteps *= 2) {
   //for (int32_t maxSteps = 100; maxSteps < 105; maxSteps *= 2) {
+
+    // ensure that maxsteps is divisible by 12 (to accomodate RK 2,3,4)
 
     const double dt = endtime / maxSteps;
     if (dumpevery) std::cout << "Running " << maxSteps << " steps at dt= " << dt << std::endl;
