@@ -5,11 +5,13 @@
  */
 
 #include "DynamicState.hpp"
-#include "DynamicalSystem.hpp"
+
 #include "NBodyVort2D.hpp"
 #include "NBodyGrav3D.hpp"
 #include "SineWave.hpp"
 #include "SpringMass.hpp"
+#include "LennardJones.hpp"
+
 #include "ForwardIntegrator.hpp"
 #include "MultistageIntegrator.hpp"
 #include "MultistepIntegrator.hpp"
@@ -55,7 +57,8 @@ int main () {
   // define the dynamical system
   //VelocitySine s(endtime/9.25);
   //AccelerationSine s(endtime/9.25);
-  SpringMass s(endtime/9.25);
+  //SpringMass s(endtime/9.25);
+  LennardJones s(1.5,0.02);
   //AccelerationSine s(endtime/1.25);
   //AccelerationSine s(2.0*M_PI);
   //AccelerationSine s(endtime*4);
@@ -83,7 +86,8 @@ int main () {
   std::cout << std::setprecision(8);
 
   // integrate using the various methods
-  for (int32_t maxSteps = 60; maxSteps < 130000; maxSteps *= 2) {
+  for (int32_t maxSteps = 60; maxSteps < 130000; maxSteps *= 1.3) {
+  //for (int32_t maxSteps = 60; maxSteps < 130000; maxSteps *= 2) {
   //for (int32_t maxSteps = 12; maxSteps < 15; maxSteps *= 2) {
   //for (int32_t maxSteps = 100; maxSteps < 105; maxSteps *= 2) {
 
