@@ -38,8 +38,8 @@ Compile and run multistep with the following commands on an RPM-based system:
     ./runmultistep
 
 ### Performance
-Short story: for gravitational systems, Verlet and Richardson-Verlet are the best,
-with Richardson-Verlet outperforming every other method on the simple spring-mass system.
+Short story: for gravitational systems, Verlet and Richardson-Verlet are the best;
+Richardson-Verlet and AB5 outperforming other methods on the spring-mass system (ensemble of 100).
 The Lennard-Jones results are averages over 100 electrons in one dimensional motion
 and show Verlet as the best if errors of 1% or greater are acceptable, and Richardson-Verlet
 if higher accuracy is required.
@@ -51,6 +51,7 @@ Note that in the test program and in the above plot, the multi*stage* methods ta
 2x, 3x, and 4x longer time steps;
 this is so that we can compare the error to the computational effort,
 as those methods perform more derivative evaluations per time *step*.
+Also, something is clearly wrong with my implementation of RK3.
 
 ### Future work
 This is still a toy program, meant to test various forward integrators.
