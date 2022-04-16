@@ -4,6 +4,8 @@
  * Copyright 2016,22 Mark J. Stock, markjstock@gmail.com
  */
 
+#pragma once
+
 #include "DynamicalSystem.hpp"
 #include "MultistageIntegrator.hpp"
 
@@ -61,7 +63,7 @@ public:
 
   // use the best method to approximate the final state
   Eigen::ArrayXd getExact(const double _endtime) {
-    int32_t maxSteps = 10000;
+    int32_t maxSteps = 100000;
     double dt = _endtime / maxSteps;
     RK4<Eigen::ArrayXd> exact(*this,0);
     std::cout << "'Exact' solution is from running " << maxSteps << " steps of RK4 at dt= " << dt << std::endl;
@@ -71,7 +73,7 @@ public:
     return exact.getPosition();
   }
 
-  // return all state at the given time (here: pos, vel, acc)
+  // return all state at the given time (here: pos and vel)
   std::vector<Eigen::ArrayXd> getState(const double _endtime) {
     int32_t maxSteps = 10000;
     double dt = _endtime / maxSteps;
