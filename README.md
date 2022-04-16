@@ -57,15 +57,13 @@ This is still a toy program, meant to test various forward integrators.
 In the future, I hope to do the following:
 
 * build a linkable library and use that to generate executables
-* support multithreading and superscalar instructions for the nbody code (via templates)
-* add Bulirsch-Stoer integrator
-* should calculation of the highest derivative come at the end of the current step or the beginning of the next one? The former would make for cleaner code.
+* add Bulirsch-Stoer integrator, any others? Gear?
 * include integrators with automatic time step adjustment (global first)
 * develop integrator with local (element-wise) time-stepping
-* calculate total effort/cost for integrators and derivative-finder
-* support systems which have forcing terms on derivatives other than the highest
+* support systems which have forcing terms on derivatives other than the highest (like friction, which is proportional to velocity in a force system)
+* should calculation of the highest derivative come at the end of the current step or the beginning of the next one? The former would make for cleaner code.
 
 ### Other ODE libraries
 We have to mention [BOOST's odeint](https://www.boost.org/doc/libs/1_78_0/libs/numeric/odeint/doc/html/index.html);
-and [odeint-2](https://github.com/headmyshoulder/odeint-v2) also looks good.
+and [odeint-2](https://github.com/headmyshoulder/odeint-v2) which uses it to solve sample problems.
 
