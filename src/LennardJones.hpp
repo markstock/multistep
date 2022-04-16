@@ -8,34 +8,43 @@
 
 #include "DynamicalSystem.hpp"
 
+#include <Eigen/Dense>
+
+#include <cstdint>
 #include <cmath>
 
 /*
- * The right way to do a sine wave, as a solution to the spring-mass system
+ * A system of a number of particles (electrons) under Lennard-Jones forces (potential?)
  */
-class LennardJones : public AccelerationSystem<double> {
+class LennardJones : public AccelerationSystem<Eigen::ArrayXd> {
 public:
-  LennardJones(const double _xs, const double _mass) :
-    AccelerationSystem<double>(1),
-    xstart(_xs), mass(_mass)
+  LennardJones(const int32_t _num, const double _xs, const double _mass) :
+    AccelerationSystem<Eigen::ArrayXd>(_num),
+    num(_num), xstart(_xs), avgmass(_mass)
   {
+    // set unique masses
+    mass = avgmass * (1.0 + 0.1*Eigen::ArrayXd::Random(num));
+
     // store initial conditions (position and velocity)
-    ic.x[0] = xstart;
-    ic.x[1] = 0.0;
+    ic.x[0] = 1.5 + 0.5*Eigen::ArrayXd::Random(num);
+    ic.x[1] = Eigen::ArrayXd::Zero(num);
+
+    //std::cout << "initial particles are:\n";
+    //for (int32_t i=0; i<num; ++i) std::cout << "\t" << i << "\t" << mass[i] << "\t" << ic.x[0][i] << "\n";
   };
 
   // return the derivative at the given point
-  double getHighestDeriv(const double _pos, const double _time) {
-    double acc = (std::pow(_pos,-12) - std::pow(_pos,-6)) / mass;
+  Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd _pos, const double _time) {
+    Eigen::ArrayXd acc = (_pos.pow(-12) - _pos.pow(-6)) / mass;
     //std::cout << "\n2nd deriv at x=" << _pos << " and t=" << _time << " is " << acc;
     return acc;
   }
 
   // just return theoretical exact position at the given time
-  double getExact(const double _endtime) {
+  Eigen::ArrayXd getExact(const double _endtime) {
     int32_t maxSteps = 1000000;
     double dt = _endtime / maxSteps;
-    RK4<double> exact(*this,0);
+    RK4<Eigen::ArrayXd> exact(*this,0);
     std::cout << "'Exact' solution is from running " << maxSteps << " steps of RK4 at dt= " << dt << std::endl;
     for (int32_t i=0; i<maxSteps; ++i) { exact.stepForward(dt); }
     return exact.getPosition();
@@ -43,27 +52,30 @@ public:
 
   // return all state at the given time (here: pos, vel, acc),
   // this is to populate back history for the multi-step integrators
-  std::vector<double> getState(const double _endtime) {
+  std::vector<Eigen::ArrayXd> getState(const double _endtime) {
     int32_t maxSteps = 10000;
     double dt = _endtime / maxSteps;
-    RK4<double> exact(*this,0);
+    RK4<Eigen::ArrayXd> exact(*this,0);
     //std::cout << "'Exact' solution is from running " << maxSteps << " steps of RK4 at dt= " << dt << std::endl;
     for (int32_t i=0; i<maxSteps; ++i) { exact.stepForward(dt); }
 
     // set up the return state vector, with new forces
-    std::vector<double> state({exact.getPosition(),
+    std::vector<Eigen::ArrayXd> state({exact.getPosition(),
                                exact.getVelocity(),
                                getHighestDeriv(exact.getPosition(),_endtime)});
     return state;
   }
 
   // find the error norm
-  double getErrorNorm(const double _delta) {
-    //std::cout << "\n error is "
-    return std::abs(_delta);
+  double getErrorNorm(const Eigen::ArrayXd _delta) {
+    return _delta.matrix().norm();
   }
 
 protected:
-  const double xstart, mass;
+  // number of bodies
+  int32_t num;
+  // these values are the averages for the auto-generated points
+  const double xstart, avgmass;
+  Eigen::ArrayXd mass;
 };
 

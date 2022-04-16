@@ -40,8 +40,12 @@ Compile and run multistep with the following commands on an RPM-based system:
 ### Performance
 Short story: for gravitational systems, Verlet and Richardson-Verlet are the best,
 with Richardson-Verlet outperforming every other method on the simple spring-mass system.
+The Lennard-Jones results are averages over 100 electrons in one dimensional motion
+and show Verlet as the best if errors of 1% or greater are acceptable, and Richardson-Verlet
+if higher accuracy is required.
 
 ![Error vs. time step, harmonic oscillator](doc/spring_results.png)
+![Error vs. time step, Lennard-Jones anharmonic oscillator](doc/lj_results.png)
 
 Note that in the test program and in the above plot, the multi*stage* methods take
 2x, 3x, and 4x longer time steps;

@@ -42,10 +42,10 @@ private:
 };
 
 // use this for sine waves
-#define TEMPLATEVAR double
+//#define TEMPLATEVAR double
 
 // use this for NBodyGrav3D and NBodyVort2D
-//#define TEMPLATEVAR Eigen::ArrayXd
+#define TEMPLATEVAR Eigen::ArrayXd
 
 // Create a system and an integrator
 int main () {
@@ -58,7 +58,7 @@ int main () {
   //VelocitySine s(endtime/9.25);
   //AccelerationSine s(endtime/9.25);
   //SpringMass s(endtime/9.25);
-  LennardJones s(1.5,0.02);
+  LennardJones s(100,1.0,0.02);
   //AccelerationSine s(endtime/1.25);
   //AccelerationSine s(2.0*M_PI);
   //AccelerationSine s(endtime*4);
