@@ -26,13 +26,23 @@ public:
   {
     // num is how many bodies
 
-    // we store the unchanging properties here
-    circ = Eigen::ArrayXd::Random(num) / (2.0*num);
-    radiusSquared = 0.1 + 0.1 * Eigen::ArrayXd::Random(num);
+    // we store the unchanging properties here (random generates numbers -1:1)
+    circ = 2.5 * Eigen::ArrayXd::Random(num) / num;
+    radiusSquared = 0.2 + 0.05 * Eigen::ArrayXd::Random(num);
     radiusSquared = radiusSquared.square();
 
-    // store initial conditions in case we want to reuse this
+    // first take: distribute randomly [-1:1]
     ic.x[0] = 1.0 * Eigen::ArrayXd::Random(numVars);
+
+    // second take: distribute in a jittered grid
+    //const int32_t nx = 1 + (int32_t)std::sqrt((double)num-0.5);
+    //const double dx = 2.0 / nx;
+    //int32_t cnt = 0;
+    //for (int32_t ix = 0; ix<nx; ++ix) {
+    //for (int32_t iy = 0; iy<nx; ++iy) {
+    //  if (++cnt > num) break; break;
+    //}
+    //}
   };
 
   // perform n-body acceleration calculation; uses position and mass and radius squared
@@ -75,7 +85,7 @@ public:
 
   // return all state at the given time (here: pos and vel)
   std::vector<Eigen::ArrayXd> getState(const double _endtime) {
-    int32_t maxSteps = 10000;
+    int32_t maxSteps = 1000;
     double dt = _endtime / maxSteps;
     RK4<Eigen::ArrayXd> exact(*this,0);
     for (int32_t i=0; i<maxSteps; ++i) {
