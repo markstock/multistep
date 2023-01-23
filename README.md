@@ -57,6 +57,7 @@ Also, something is clearly wrong with my implementation of RK3.
 This is still a toy program, meant to test various forward integrators.
 In the future, I hope to do the following:
 
+* try a Kahan-summation-like scheme for reducing the roundoff error of the Richardson-Verlet method (add a few flops to account for roundoff)
 * build a linkable library and use that to generate executables
 * add Bulirsch-Stoer integrator, any others? Gear?
 * include integrators with automatic time step adjustment (global first)
