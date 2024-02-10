@@ -58,6 +58,7 @@ This is still a toy program, meant to test various forward integrators.
 In the future, I hope to do the following:
 
 * try a Kahan-summation-like scheme for reducing the roundoff error of the Richardson-Verlet method (add a few flops to account for roundoff)
+* add a system with friction: baseball flights, or damped and forced oscillator
 * build a linkable library and use that to generate executables
 * add Bulirsch-Stoer integrator, any others? Gear?
 * include integrators with automatic time step adjustment (global first)
@@ -69,3 +70,15 @@ In the future, I hope to do the following:
 We have to mention [BOOST's odeint](https://www.boost.org/doc/libs/1_78_0/libs/numeric/odeint/doc/html/index.html);
 and [odeint-2](https://github.com/headmyshoulder/odeint-v2) which uses it to solve sample problems.
 
+### Citing Multistep
+
+I don't get paid for writing or maintaining this, so if you find this tool useful or mention it in your writing, please please cite it by using the following BibTeX entry.
+
+```
+@Misc{Multistep2022,
+  author =       {Mark J.~Stock},
+  title =        {Multistep:  Library for multistep and multistage integration of ODEs on vectors of numbers},
+  howpublished = {\url{https://github.com/markstock/multistep}},
+  year =         {2022}
+}
+```
