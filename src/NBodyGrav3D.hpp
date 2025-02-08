@@ -1,7 +1,7 @@
 /*
  * NBodyGrav3D.hpp - a simple 3D gravitational system
  *
- * Copyright 2016,22 Mark J. Stock, markjstock@gmail.com
+ * Copyright 2016,22,25 Mark J. Stock, markjstock@gmail.com
  */
 
 #pragma once
@@ -104,25 +104,23 @@ public:
   // perform n-body acceleration calculation; uses position and mass and radius squared
   Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos, const double _time) {
 
-    // generate the output vector
+    // generate the output vector (3 accelerations per projectile)
     Eigen::ArrayXd newVal = Eigen::ArrayXd::Zero(numVars);
 
     // evaluate forces
-    if (true) {
-      for (int32_t i=0; i<num; ++i) {
-        // new accelerations on particle i
-        Eigen::Vector3d newAcc(0.0, 0.0, 0.0);
-        for (int32_t j=0; j<num; ++j) {
-          if (i != j) {
+    for (int32_t i=0; i<num; ++i) {
+      // new accelerations on particle i
+      Eigen::Vector3d newAcc(0.0, 0.0, 0.0);
+      for (int32_t j=0; j<num; ++j) {
+        if (i != j) {
           // 20 flops
           // the influence of particle j
           Eigen::Vector3d dx = pos.segment(3*j,3) - pos.segment(3*i,3);
           double invdist = 1.0/(dx.norm()+radiusSquared(j));
           newAcc += dx * (mass(j) * invdist * invdist * invdist);
-          }
         }
-        newVal.segment(3*i,3) = newAcc;
       }
+      newVal.segment(3*i,3) = newAcc;
     }
     return newVal;
   }
@@ -141,7 +139,7 @@ public:
     std::cout << "'Exact' solution is from running " << maxSteps << " steps of AB5 at dt= " << dt << std::endl;
     for (int32_t i=0; i<maxSteps; ++i) {
       exact.stepForward(dt);
-      //if (i%100 == 0) std::cout << "    " << dt*i << "  " << exact.getPosition().segment(3,3).transpose() << std::endl;
+      //if (i%10000 == 0) std::cout << "    " << dt*i << "  " << exact.getPosition().segment(3,3).transpose() << std::endl;
     }
     if (num == 5) std::cout << "  ending energy " << std::setprecision(16) << getEnergy(exact.getDynamicState()) << std::endl;
     return exact.getPosition();
