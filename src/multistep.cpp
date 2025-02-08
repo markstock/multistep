@@ -11,6 +11,7 @@
 #include "SineWave.hpp"
 #include "SpringMass.hpp"
 #include "LennardJones.hpp"
+#include "Projectiles3D.hpp"
 
 #include "ForwardIntegrator.hpp"
 #include "MultistageIntegrator.hpp"
@@ -31,15 +32,13 @@
 /*
  * Control class for Richardson Extrapolation and globally adaptive time stepping
  */
-class RichardsonEuler {
-public:
-  RichardsonEuler (DynamicalSystem<Eigen::ArrayXd>& _system) {
-
-  }
-
-private:
+//class RichardsonEuler {
+//public:
+//  RichardsonEuler (DynamicalSystem<Eigen::ArrayXd>& _system) {
+//  }
+//private:
   //Euler
-};
+//};
 
 // use this for sine waves
 //#define TEMPLATEVAR double
@@ -52,18 +51,19 @@ int main () {
 
   const bool dumpevery = false;
   const bool doHamming = false;
-  const double endtime = 10.0;
+  double endtime = 10.0;
 
   // define the dynamical system
   //VelocitySine s(endtime/9.25);
   //AccelerationSine s(endtime/9.25);
   //SpringMass s(100,endtime/9.25);
-  LennardJones s(100,1.0,0.02);
+  //LennardJones s(100,1.0,0.02);
   //AccelerationSine s(endtime/1.25);
   //AccelerationSine s(2.0*M_PI);
   //AccelerationSine s(endtime*4);
-  //NBodyGrav3D s(10);
-  //NBodyVort2D s(10);
+  //NBodyGrav3D s(5); endtime = 100.0;
+  //NBodyVort2D s(32); endtime = 10.0;
+  Projectiles3D s(100); endtime = 10.0;
 
   // find the "exact" solution and save it for reuse
   TEMPLATEVAR exact = s.getExact(endtime);
@@ -86,6 +86,7 @@ int main () {
   std::cout << std::setprecision(8);
 
   // integrate using the various methods
+  //for (int32_t maxSteps = 60; maxSteps < 2000000; maxSteps = 12*(int)(maxSteps*1.3/12.0)) {
   for (int32_t maxSteps = 60; maxSteps < 130000; maxSteps = 12*(int)(maxSteps*1.3/12.0)) {
   //for (int32_t maxSteps = 60; maxSteps < 130000; maxSteps *= 2) {
   //for (int32_t maxSteps = 12; maxSteps < 15; maxSteps *= 2) {
