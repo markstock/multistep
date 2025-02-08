@@ -56,7 +56,6 @@ public:
     int32_t maxSteps = 10000;
     double dt = _endtime / maxSteps;
     RK4<Eigen::ArrayXd> exact(*this,0);
-    //std::cout << "'Exact' solution is from running " << maxSteps << " steps of RK4 at dt= " << dt << std::endl;
     for (int32_t i=0; i<maxSteps; ++i) { exact.stepForward(dt); }
 
     // set up the return state vector, with new forces
