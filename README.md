@@ -48,16 +48,18 @@ if higher accuracy is required.
 ![Error vs. time step, Lennard-Jones anharmonic oscillator](doc/lj_results.png)
 ![Error vs. time step, Solar system simulation](doc/grav3d_results.png)
 
-Note that the 3D gravitational test is drawn directly from the Computer Language Game's nbody problem.
+Note that the 3D gravitational test is drawn directly from the Computer Language Game's nbody problem,
+see [here](https://benchmarksgame-team.pages.debian.net/benchmarksgame/performance/nbody.html)
+and [here](https://programming-language-benchmarks.vercel.app/problem/nbody).
 In that test, the five most massive bodies in the Solar System are simulated for 50,000 years using
 Euler (1st order) time steps of 1/100th year. The fastest programs complete the 5 million steps in about 0.3 seconds.
 In the case here, though, we run for only 100 years and vary the time step length.
 The error metric here uses final position, measured in AUs, and not energy (which, being an integral measure, is 
 easier to achieve). We find that taking 0.01 year Euler time steps results in very poor
-accuracy. To achieve even 0.1 AU mean positional error (which means your probe will fail to intercept),
-we had to use time steps of 36 minutes, or about 14700x as many as the CLG's problem specification.
+accuracy. To achieve even 0.1 AU mean positional error (which still means your probe will fail to intercept),
+we had to use time steps of 36 minutes, or about 14700x shorter than the CLG's problem specification.
 To get that same error (0.1 AU in final position), the Richardson-Verlet method needs to take
-a time step only once every 8 months, or 69x as long as in the CLG benchmark.
+a step only once every 8 months of simulation time, or 69x longer than in the CLG benchmark.
 This means that we can speed up the calculation - in theory - by a factor of 1 million, just
 by using a smarter method for time stepping.
 
