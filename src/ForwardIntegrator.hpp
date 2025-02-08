@@ -78,6 +78,10 @@ public:
     return s[0].getState();
   }
 
+  DynamicState<T> getDynamicState () {
+    return s[0];
+  }
+
   double getTime (const size_t _idx) {
     assert(_idx < s.size() && "Asking for improper index into DynamicState");
     return s[_idx].getTime();

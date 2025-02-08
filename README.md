@@ -46,12 +46,29 @@ if higher accuracy is required.
 
 ![Error vs. time step, harmonic oscillator](doc/spring_results.png)
 ![Error vs. time step, Lennard-Jones anharmonic oscillator](doc/lj_results.png)
+![Error vs. time step, Solar system simulation](doc/grav3d_results.png)
 
-Note that in the test program and in the above plot, the multi*stage* methods take
-2x, 3x, and 4x longer time steps;
-this is so that we can compare the error to the computational effort,
-as those methods perform more derivative evaluations per time *step*.
-Also, something is clearly wrong with my implementation of RK3.
+Note that the 3D gravitational test is drawn directly from the Computer Language Game's nbody problem.
+In that test, the five most massive bodies in the Solar System are simulated for 50,000 years using
+Euler (1st order) time steps of 1/100th year. The fastest programs complete the 5 million steps in about 0.3 seconds.
+In the case here, though, we run for only 100 years and vary the time step length.
+The error metric here uses final position, measured in AUs, and not energy (which, being an integral measure, is 
+easier to achieve). We find that taking 0.01 year Euler time steps results in very poor
+accuracy. To achieve even 0.1 AU mean positional error (which means your probe will fail to intercept),
+we had to use time steps of 36 minutes, or about 14700x as many as the CLG's problem specification.
+To get that same error (0.1 AU in final position), the Richardson-Verlet method needs to take
+a time step only once every 8 months, or 69x as long as in the CLG benchmark.
+This means that we can speed up the calculation - in theory - by a factor of 1 million, just
+by using a smarter method for time stepping.
+
+Another important node is that in the program and the above plots, the multi*stage* (Runge-Kutta)
+methods take 2x, 3x, and 4x longer time steps than the multi*step* methods.
+This is so that we can compare the error to the computational effort,
+as the Runge-Kutta methods perform more derivative evaluations per time *step*.
+This means that the x-axis in the above plots can be directly compared to
+computational effort.
+
+Also, why does my Runge-Kutta 3rd order method never achieve 3rd order?
 
 ### Future work
 This is still a toy program, meant to test various forward integrators.
