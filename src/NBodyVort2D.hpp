@@ -1,13 +1,14 @@
 /*
  * NBodyVort2D.hpp - a simple 2D vortex method
  *
- * Copyright 2016,22 Mark J. Stock, markjstock@gmail.com
+ * Copyright 2016,22,25 Mark J. Stock, markjstock@gmail.com
  */
 
 #pragma once
 
 #include "DynamicalSystem.hpp"
 #include "MultistageIntegrator.hpp"
+#include "MultistepIntegrator.hpp"
 
 #include <Eigen/Dense>
 
@@ -57,7 +58,7 @@ public:
         // new velocities on particle i
         Eigen::Vector2d thisVel(0.0, 0.0);
         for (int32_t j=0; j<num; ++j) {
-          // 20 flops
+          // 16 flops
           // the influence of particle j
           Eigen::Vector2d dx = pos.segment(2*j,2) - pos.segment(2*i,2);
           double invdist = 1.0/(dx.norm()+radiusSquared(j));
@@ -73,10 +74,11 @@ public:
 
   // use the best method to approximate the final state
   Eigen::ArrayXd getExact(const double _endtime) {
-    int32_t maxSteps = 100000;
+    int32_t maxSteps = 1000000;
     double dt = _endtime / maxSteps;
-    RK4<Eigen::ArrayXd> exact(*this,0);
-    std::cout << "'Exact' solution is from running " << maxSteps << " steps of RK4 at dt= " << dt << std::endl;
+    //RK4<Eigen::ArrayXd> exact(*this,0);
+    AB5<Eigen::ArrayXd> exact(*this,0,dt);
+    std::cout << "'Exact' solution is from running " << maxSteps << " steps of AB5 at dt= " << dt << std::endl;
     for (int32_t i=0; i<maxSteps; ++i) {
       exact.stepForward(dt);
     }
@@ -91,7 +93,10 @@ public:
     for (int32_t i=0; i<maxSteps; ++i) {
       exact.stepForward(dt);
     }
-    return exact.getState();
+    // set up the return state vector, with new forces
+    std::vector<Eigen::ArrayXd> state({exact.getPosition(),
+                               getHighestDeriv(exact.getPosition(),_endtime)});
+    return state;
   }
 
   // find the error norm
