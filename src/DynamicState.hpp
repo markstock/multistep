@@ -88,6 +88,7 @@ public:
       return x[1];
     } catch (std::exception& e) {
       std::cout << "No velocity: " << e.what() << std::endl;
+      exit(1);
     }
   }
 
@@ -98,6 +99,7 @@ public:
       return x[2];
     } catch (std::exception& e) {
       std::cout << "No acceleration: " << e.what() << std::endl;
+      exit(1);
     }
   }
 
