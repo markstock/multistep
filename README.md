@@ -63,7 +63,7 @@ a step only once every 8 months of simulation time, or 69x longer than in the CL
 This means that we can speed up the calculation - in theory - by a factor of 1 million, just
 by using a smarter method for time stepping.
 
-Another important node is that in the program and the above plots, the multi*stage* (Runge-Kutta)
+Another important note is that in the program and the above plots, the multi*stage* (Runge-Kutta)
 methods take 2x, 3x, and 4x longer time steps than the multi*step* methods.
 This is so that we can compare the error to the computational effort,
 as the Runge-Kutta methods perform more derivative evaluations per time *step*.
@@ -84,6 +84,7 @@ In the future, I hope to do the following:
 * develop integrator with local (element-wise) time-stepping
 * support systems which have forcing terms on derivatives other than the highest (like friction, which is proportional to velocity in a force system)
 * should calculation of the highest derivative come at the end of the current step or the beginning of the next one? The former would make for cleaner code.
+* add 10-th order Runge Kutta from here: https://sce.uhcl.edu/rungekutta/ (needs 17 stages)
 
 ### Other ODE libraries
 We have to mention [BOOST's odeint](https://www.boost.org/doc/libs/1_78_0/libs/numeric/odeint/doc/html/index.html);
