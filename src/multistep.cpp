@@ -62,8 +62,9 @@ int main () {
   //AccelerationSine s(2.0*M_PI);
   //AccelerationSine s(endtime*4);
   //NBodyGrav3D s(5); endtime = 100.0;
+  NBodyGrav3D s(7); endtime = 3.0;
   //NBodyVort2D s(32); endtime = 10.0;
-  Projectiles3D s(100); endtime = 10.0;
+  //Projectiles3D s(100); endtime = 10.0;
 
   // find the "exact" solution and save it for reuse
   TEMPLATEVAR exact = s.getExact(endtime);
@@ -154,7 +155,9 @@ int main () {
     }
 
     {
-      RK3<TEMPLATEVAR> r3(s,0);
+      //RK3Kutta<TEMPLATEVAR> r3(s,0);
+      RK3Heun<TEMPLATEVAR> r3(s,0);
+      //RK3Ralston<TEMPLATEVAR> r3(s,0);
       for (int32_t i=0; i<maxSteps; ++i) {
         if (i%3 == 0) {
           r3.stepForward(3.0*dt);
