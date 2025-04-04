@@ -6,8 +6,10 @@ Library for multistep and multistage integration of ODEs on vectors of numbers
 This is a library and main routine for testing various multi-step and
 multi-stage [forward integrators for ODEs](https://en.wikipedia.org/wiki/Numerical_methods_for_ordinary_differential_equations). It can perform integrations of several simple and canonical systems
 using a wide range of time step sizes for the following integrators:
-Euler, [Runge-Kutta](https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods) 2nd (two types)
-and 3rd and 4th order,
+Euler,
+[Runge-Kutta](https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods) 2nd (two types),
+3rd (three tpyes),
+and 4th order (two types),
 [Adams-Bashforth](https://en.wikipedia.org/wiki/Linear_multistep_method) 2nd and 4th and 5th order,
 [Standard Verlet](https://en.wikipedia.org/wiki/Verlet_integration),
 a higher-order Richardson-Verlet, and a method from Hamming's "Numerical Methods for
@@ -70,28 +72,27 @@ as the Runge-Kutta methods perform more derivative evaluations per time *step*.
 This means that the x-axis in the above plots can be directly compared to
 computational effort.
 
-Also, why does my Runge-Kutta 3rd order method never achieve 3rd order?
-
 ### Future work
 This is still a toy program, meant to test various forward integrators.
 In the future, I hope to do the following:
 
+* refactor to allow more RK3 and RK4 methods, and treat them correctly
 * try a Kahan-summation-like scheme for reducing the roundoff error of the Richardson-Verlet method (add a few flops to account for roundoff)
 * add a system with friction: baseball flights, or damped and forced oscillator
 * build a linkable library and use that to generate executables
-* add Bulirsch-Stoer integrator, any others? Gear?
+* add Bulirsch-Stoer integrator, any others? Gear? RK10?
 * include integrators with automatic time step adjustment (global first)
-* develop integrator with local (element-wise) time-stepping
+* develop integrator with local (element-wise) time-stepping (different repository: adapDt)
 * support systems which have forcing terms on derivatives other than the highest (like friction, which is proportional to velocity in a force system)
 * should calculation of the highest derivative come at the end of the current step or the beginning of the next one? The former would make for cleaner code.
 * add 10-th order Runge Kutta from here: https://sce.uhcl.edu/rungekutta/ (needs 17 stages)
+* add my ORCID to all github repo citations
 
 ### Other ODE libraries
 We have to mention [BOOST's odeint](https://www.boost.org/doc/libs/1_78_0/libs/numeric/odeint/doc/html/index.html);
 and [odeint-2](https://github.com/headmyshoulder/odeint-v2) which uses it to solve sample problems.
 
 ### Citing Multistep
-
 I don't get paid for writing or maintaining this, so if you find this tool useful or mention it in your writing, please please cite it by using the following BibTeX entry.
 
 ```
