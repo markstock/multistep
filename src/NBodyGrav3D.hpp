@@ -73,6 +73,46 @@ public:
       // exact integration: no smoothing radius
       radiusSquared = Eigen::ArrayXd::Zero(num);
 
+    } else if (_num == 7) {
+      // we are doing the Pleiades problem
+      // ic.x[0] is vector of initial positions: 3 values per body
+      // ic.x[1] is vector of initial velocities: 3 values per body
+      ic.x[0] = Eigen::ArrayXd::Zero(3*num);
+      ic.x[1] = Eigen::ArrayXd::Zero(3*num);
+      mass = Eigen::ArrayXd::Zero(num);
+
+      // the bodies
+      ic.x[0].segment(0,3) << 3.0, 3.0, 0.0;
+      ic.x[1].segment(0,3) << 0.0, 0.0, 0.0;
+      mass[0] = 1.0;
+
+      ic.x[0].segment(3,3) << 3.0, -3.0, 0.0;
+      ic.x[1].segment(3,3) << 0.0, 0.0, 0.0;
+      mass[1] = 2.0;
+
+      ic.x[0].segment(6,3) << -1.0, 2.0, 0.0;
+      ic.x[1].segment(6,3) << 0.0, 0.0, 0.0;
+      mass[2] = 3.0;
+
+      ic.x[0].segment(9,3) << -3.0, 0.0, 0.0;
+      ic.x[1].segment(9,3) << 0.0, -1.25, 0.0;
+      mass[3] = 4.0;
+
+      ic.x[0].segment(12,3) << 2.0, 0.0, 0.0;
+      ic.x[1].segment(12,3) << 0.0, 1.0, 0.0;
+      mass[4] = 5.0;
+
+      ic.x[0].segment(15,3) << -2.0, -4.0, 0.0;
+      ic.x[1].segment(15,3) << 1.75, 0.0, 0.0;
+      mass[5] = 6.0;
+
+      ic.x[0].segment(18,3) << 2.0, 4.0, 0.0;
+      ic.x[1].segment(18,3) << -1.5, 0.0, 0.0;
+      mass[6] = 7.0;
+
+      // exact integration: no smoothing radius
+      radiusSquared = Eigen::ArrayXd::Zero(num);
+
     } else {
       // just generate random bodies instead
 
