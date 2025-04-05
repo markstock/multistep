@@ -1,5 +1,5 @@
-CMAKE_MINIMUM_REQUIRED ( VERSION 2.8.12 )
-PROJECT ( multistep )
+CMAKE_MINIMUM_REQUIRED ( VERSION 3.5.0 )
+PROJECT ( multistep CXX )
 
 # User-serviceable variables here
 SET_PROPERTY(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo")
@@ -12,17 +12,17 @@ SET (CMAKE_VERBOSE_MAKEFILE on)
 SET (CMAKE_EXPORT_COMPILE_COMMANDS on)
 
 IF (CMAKE_COMPILER_IS_GNUCXX)
-  SET (CMAKE_CXX_FLAGS "-Wall -Wformat -std=c++11")
+  SET (CMAKE_CXX_FLAGS "-Wall -Wformat -std=c++20")
   SET (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -ggdb3")
   SET (CMAKE_CXX_FLAGS_RELEASE "-Ofast -march=native")
   SET (CMAKE_CXX_FLAGS_RELWITHDEBUGINFO "-Ofast -march=native -g -ggdb3")
 ELSEIF (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  SET (CMAKE_CXX_FLAGS "-Wall -Wformat -std=c++11")
+  SET (CMAKE_CXX_FLAGS "-Wall -Wformat -std=c++20")
   SET (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -ggdb")
   SET (CMAKE_CXX_FLAGS_RELEASE "-O3")
   SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -ggdb")
 ELSEIF (MSVC)
-  SET (CMAKE_CXX_FLAGS "/std:c++11 /EHsc /D_USE_MATH_DEFINES /DNOMINMAX")
+  SET (CMAKE_CXX_FLAGS "/std:c++20 /EHsc /D_USE_MATH_DEFINES /DNOMINMAX")
   SET (CMAKE_CXX_FLAGS_DEBUG "/Zi")
   SET (CMAKE_CXX_FLAGS_RELEASE "/O2")
 ENDIF ()
@@ -49,7 +49,7 @@ ELSEIF ( APPLE )
 
 ELSEIF ( UNIX )
 
-  # because clang is stupid
+  # because clang does this differently
   IF (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
   ENDIF ()
