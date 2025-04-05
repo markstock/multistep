@@ -1,7 +1,7 @@
 /*
  * SineWave.hpp - just a sine wave, velocity and acceleration versions
  *
- * Copyright 2022 Mark J. Stock, markjstock@gmail.com
+ * Copyright 2022,25 Mark J. Stock, markjstock@gmail.com
  */
 
 #pragma once
@@ -52,6 +52,10 @@ public:
     return std::abs(_delta);
   }
 
+  double getEndTime() {
+    return 10.0;
+  }
+
 protected:
   const double period;
 };
@@ -96,6 +100,10 @@ public:
   double getErrorNorm(const double _delta) {
     //std::cout << "\n error is "
     return std::abs(_delta);
+  }
+
+  double getEndTime() {
+    return 10.0;
   }
 
 protected:

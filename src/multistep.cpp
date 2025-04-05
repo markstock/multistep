@@ -1,7 +1,7 @@
 /*
  * multistep - a program to test forward advection schemes
  *
- * Copyright 2016,22 Mark J. Stock, markjstock@gmail.com
+ * Copyright 2016,22,25 Mark J. Stock, markjstock@gmail.com
  */
 
 #include "DynamicState.hpp"
@@ -42,8 +42,7 @@
 
 // use this for sine waves
 //#define TEMPLATEVAR double
-
-// use this for NBodyGrav3D and NBodyVort2D
+// use this for everything else
 #define TEMPLATEVAR Eigen::ArrayXd
 
 // Create a system and an integrator
@@ -51,20 +50,22 @@ int main () {
 
   const bool dumpevery = false;
   const bool doHamming = false;
-  double endtime = 10.0;
 
   // define the dynamical system
-  //VelocitySine s(endtime/9.25);
-  //AccelerationSine s(endtime/9.25);
-  //SpringMass s(100,endtime/9.25);
-  //LennardJones s(100,1.0,0.02);
-  //AccelerationSine s(endtime/1.25);
+  //VelocitySine s(10.0/9.25);
+  //AccelerationSine s(10.0/9.25);
+  //AccelerationSine s(10.0/1.25);
   //AccelerationSine s(2.0*M_PI);
-  //AccelerationSine s(endtime*4);
-  //NBodyGrav3D s(5); endtime = 100.0;
-  NBodyGrav3D s(7); endtime = 3.0;
-  //NBodyVort2D s(32); endtime = 10.0;
-  //Projectiles3D s(100); endtime = 10.0;
+  //AccelerationSine s(40.0);
+  //SpringMass s(100,10.0/9.25);
+  //LennardJones s(100,1.0,0.02);
+  //NBodyGrav3D s(5);
+  //NBodyGrav3D s(7);
+  NBodyVort2D s(32);
+  //Projectiles3D s(100);
+
+  // each system has its own end time
+  double endtime = s.getEndTime();
 
   // find the "exact" solution and save it for reuse
   TEMPLATEVAR exact = s.getExact(endtime);
@@ -86,14 +87,10 @@ int main () {
   // set precision for error output
   std::cout << std::setprecision(8);
 
-  // integrate using the various methods
+  // integrate using the various methods (always divisible by 12, though!)
+  // ensure that maxsteps is divisible by 12 (to acommodate RK 2,3,4)
   //for (int32_t maxSteps = 60; maxSteps < 2000000; maxSteps = 12*(int)(maxSteps*1.3/12.0)) {
   for (int32_t maxSteps = 60; maxSteps < 130000; maxSteps = 12*(int)(maxSteps*1.3/12.0)) {
-  //for (int32_t maxSteps = 60; maxSteps < 130000; maxSteps *= 2) {
-  //for (int32_t maxSteps = 12; maxSteps < 15; maxSteps *= 2) {
-  //for (int32_t maxSteps = 100; maxSteps < 105; maxSteps *= 2) {
-
-    // ensure that maxsteps is divisible by 12 (to accomodate RK 2,3,4)
 
     const double dt = endtime / maxSteps;
     if (dumpevery) std::cout << "Running " << maxSteps << " steps at dt= " << dt << std::endl;

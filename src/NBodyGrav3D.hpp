@@ -171,8 +171,8 @@ public:
   //  verlet is -0.1471901297585013 ?!?
   //   AB5 gets -0.1690751638285266 - closer!
   Eigen::ArrayXd getExact(const double _endtime) {
-    int32_t maxSteps = 10000000;
-    double dt = _endtime / maxSteps;
+    const int32_t maxSteps = 10000000;
+    const double dt = _endtime / maxSteps;
     //RK4<Eigen::ArrayXd> exact(*this,0);
     //Verlet<Eigen::ArrayXd> exact(*this,0,dt);
     AB5<Eigen::ArrayXd> exact(*this,0,dt);
@@ -187,8 +187,8 @@ public:
 
   // return all state at the given time (here: pos, vel, acc)
   std::vector<Eigen::ArrayXd> getState(const double _endtime) {
-    int32_t maxSteps = 10000;
-    double dt = _endtime / maxSteps;
+    const int32_t maxSteps = 10000;
+    const double dt = _endtime / maxSteps;
     RK4<Eigen::ArrayXd> exact(*this,0);
     for (int32_t i=0; i<maxSteps; ++i) {
       exact.stepForward(dt);
@@ -226,6 +226,12 @@ public:
   // find the error norm
   double getErrorNorm(const Eigen::ArrayXd _delta) {
     return _delta.matrix().norm();
+  }
+
+  double getEndTime() {
+    if (num==5) return 100.0;
+    if (num==7) return 3.0;
+    return 10.0;
   }
 
 private:

@@ -1,7 +1,7 @@
 /*
  * LennardJones.hpp - anharmonic oscillator
  *
- * Copyright 2022 Mark J. Stock, markjstock@gmail.com
+ * Copyright 2022,25 Mark J. Stock, markjstock@gmail.com
  */
 
 #pragma once
@@ -42,8 +42,8 @@ public:
 
   // just return theoretical exact position at the given time
   Eigen::ArrayXd getExact(const double _endtime) {
-    int32_t maxSteps = 1000000;
-    double dt = _endtime / maxSteps;
+    const int32_t maxSteps = 1000000;
+    const double dt = _endtime / maxSteps;
     RK4<Eigen::ArrayXd> exact(*this,0);
     std::cout << "'Exact' solution is from running " << maxSteps << " steps of RK4 at dt= " << dt << std::endl;
     for (int32_t i=0; i<maxSteps; ++i) { exact.stepForward(dt); }
@@ -68,6 +68,10 @@ public:
   // find the error norm
   double getErrorNorm(const Eigen::ArrayXd _delta) {
     return _delta.matrix().norm();
+  }
+
+  double getEndTime() {
+    return 10.0;
   }
 
 protected:

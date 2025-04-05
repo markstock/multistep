@@ -1,7 +1,7 @@
 /*
  * DoublePendulum.hpp - the classic chaotic system
  *
- * Copyright 2022 Mark J. Stock, markjstock@gmail.com
+ * Copyright 2022,25 Mark J. Stock, markjstock@gmail.com
  */
 
 #pragma once
@@ -15,6 +15,7 @@
  *
  * Inputs are masses and initial positions, vels are assumed zero
  * Two primary variables: angular positions
+ * NOT DONE
  */
 class DoublePendulum : public AccelerationSystem<std::array<double,2>> {
 public:
@@ -58,6 +59,10 @@ public:
   double getErrorNorm(const std::array<double,2> _delta) {
     //std::cout << "\n error is "
     return std::abs(_delta);
+  }
+
+  double getEndTime() {
+    return 10.0;
   }
 
 protected:

@@ -104,6 +104,10 @@ public:
     return _delta.matrix().norm();
   }
 
+  double getEndTime() {
+    return 10.0;
+  }
+
 private:
   // number of bodies
   int32_t num;

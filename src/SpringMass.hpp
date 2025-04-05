@@ -1,7 +1,7 @@
 /*
  * SpringMass.hpp - not just about church in April
  *
- * Copyright 2022 Mark J. Stock, markjstock@gmail.com
+ * Copyright 2022,25 Mark J. Stock, markjstock@gmail.com
  */
 
 #pragma once
@@ -62,6 +62,10 @@ public:
   // find the error norm
   double getErrorNorm(const Eigen::ArrayXd _delta) {
     return _delta.matrix().norm();
+  }
+
+  double getEndTime() {
+    return 10.0;
   }
 
 protected:
