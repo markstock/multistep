@@ -1,7 +1,7 @@
 /*
  * DynamicalSystem.hpp - velocity and acceleration-based systems
  *
- * Copyright 2016,22 Mark J. Stock, markjstock@gmail.com
+ * Copyright 2016,22,25 Mark J. Stock, markjstock@gmail.com
  */
 
 #pragma once
@@ -13,6 +13,8 @@
 
 /*
  * DynamicalSystem - generalized class for dynamical systems
+ *
+ * TODO: template this on number of derivatives?
  */
 template <class T>
 class DynamicalSystem {
@@ -33,6 +35,7 @@ public:
   virtual T getExact(const double time) = 0;
   virtual std::vector<T> getState(const double time) = 0;
   virtual double getErrorNorm(const T pos) = 0;
+  virtual double getEndTime() = 0;
 
 protected:
   // number of equations in the system
@@ -94,4 +97,10 @@ protected:
   // must define and store initial state
   DynamicState<T> ic;
 };
+
+
+/*
+ * JerkSystem - a dynamic system driven by the derivative of acceleration
+ *                      states have x, x', x'', x'''
+ */
 
