@@ -1,7 +1,7 @@
 /*
  * MultistageIntegrator.hpp - Multi-stage forward integrator classes (Euler, Runge-Kutta)
  *
- * Copyright 2016,22 Mark J. Stock, markjstock@gmail.com
+ * Copyright 2016,22,25 Mark J. Stock, markjstock@gmail.com
  */
 
 #pragma once
@@ -66,9 +66,9 @@ public:
  * Runge-Kutta 2nd order - Heun's Method
  */
 template <class T>
-class RK2 : public MultistageIntegrator<T> {
+class RK2Heun : public MultistageIntegrator<T> {
 public:
-  RK2 (DynamicalSystem<T>& _system, const int32_t _level) :
+  RK2Heun (DynamicalSystem<T>& _system, const int32_t _level) :
     MultistageIntegrator<T>(_system, _level)
   {
     // initial conditions set in parent constructor
@@ -88,7 +88,7 @@ public:
 
     // from that state, project forward
     DynamicState<T> stage2 = this->EulerStep(this->s[0], _dt);
-    stage2.x[numDeriv] = this->g.getHighestDeriv(stage2.x[0]);
+    stage2.x[numDeriv] = this->g.getHighestDeriv(stage2.x[0], this->getTime()+_dt);
 
     /*
     // if vel:
@@ -187,7 +187,7 @@ public:
     MultistageIntegrator<T>(_system, _level)
   {
     // initial conditions set in parent constructor
-    assert(False and "RK3Kutta incomplete!");
+    assert(false and "RK3Kutta incomplete!");
   }
   
   void stepForward (const double _dt) {
@@ -419,7 +419,7 @@ public:
     MultistageIntegrator<T>(_system, _level)
   {
     // initial conditions set in parent constructor
-    assert(False and "RK4ter incomplete!");
+    assert(false and "RK4ter incomplete!");
   }
   
   // Most write-ups of this are incorrect! Does nobody edit their shit?
