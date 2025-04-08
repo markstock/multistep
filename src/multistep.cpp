@@ -26,24 +26,16 @@
 #include <cmath>
 
 
-// Perform Richardson Extrapolation by creating multiple temporal resolution levels automatically?
-// or is that Bulirsch-Stoer?
-
-/*
- * Control class for Richardson Extrapolation and globally adaptive time stepping
- */
-//class RichardsonEuler {
-//public:
-//  RichardsonEuler (DynamicalSystem<Eigen::ArrayXd>& _system) {
-//  }
-//private:
-  //Euler
-//};
-
 // use this for sine waves
 //#define TEMPLATEVAR double
+
 // use this for everything else
 #define TEMPLATEVAR Eigen::ArrayXd
+// this is the same as Eigen::Array< double, Dynamic, 1 >.
+
+// can we improve precision with this?
+// #include <quadmath.h>
+// Eigen::Array< __float128, Dynamic, 1 >.
 
 // Create a system and an integrator
 int main () {
@@ -76,6 +68,7 @@ int main () {
   std::cout << "AB2\t\t";
   if (s.hasAccel()) std::cout << "Verlet\t\t";
   std::cout << "RK3\t\t";
+  std::cout << "AB3\t\t";
   std::cout << "RK4\t\t";
   std::cout << "AB4\t\t";
   if (s.hasAccel()) std::cout << "Verlet4\t\t";
@@ -113,6 +106,7 @@ int main () {
     }
 
     {
+      //RK2Heun<TEMPLATEVAR> r2(s,0);
       RK2Ralston<TEMPLATEVAR> r2(s,0);		// Ralston's is better for larger timesteps only
       for (int32_t i=0; i<maxSteps; ++i) {
         if (i%2 == 0) {
@@ -153,8 +147,8 @@ int main () {
 
     {
       //RK3Kutta<TEMPLATEVAR> r3(s,0);
-      RK3Heun<TEMPLATEVAR> r3(s,0);
-      //RK3Ralston<TEMPLATEVAR> r3(s,0);
+      //RK3Heun<TEMPLATEVAR> r3(s,0);
+      RK3Ralston<TEMPLATEVAR> r3(s,0);
       for (int32_t i=0; i<maxSteps; ++i) {
         if (i%3 == 0) {
           r3.stepForward(3.0*dt);
@@ -165,6 +159,18 @@ int main () {
       //std::cout << "  RK3 solution: " << r3Solution.segment(0,4).transpose() << std::endl;
       //std::cout << "  Error in RK3 is " << exact.getError(r3Solution) << std::endl;
       std::cout << "\t" << r3.getError(exact);
+    }
+
+    {
+      AB3<TEMPLATEVAR> a3(s,0,dt);
+      for (int32_t i=0; i<maxSteps; ++i) {
+        a3.stepForward(dt);
+        if (dumpevery) std::cout << "ab3 at t " << a3.getTime() << " is " << a3.getPosition() << "\n";
+      }
+      //TEMPLATEVAR a3Solution = a3.getPosition();
+      //std::cout << "  ABM3 solution: " << a3Solution.segment(0,4).transpose() << std::endl;
+      //std::cout << "  Error in ABM3 is " << exact.getError(a3Solution) << std::endl;
+      std::cout << "\t" << a3.getError(exact);
     }
 
     {

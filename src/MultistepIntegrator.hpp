@@ -1,7 +1,7 @@
 /*
  * MultistepIntegrator.hpp - Multi-step forward integrator classes (using history)
  *
- * Copyright 2016,22 Mark J. Stock, markjstock@gmail.com
+ * Copyright 2016,22,25 Mark J. Stock, markjstock@gmail.com
  */
 
 #pragma once
@@ -71,6 +71,39 @@ public:
     // perform forward integration: AB2 for velocity, AM2 for position
     //this->s[0].x[1] = this->s[1].x[1] + 0.5 * _dt * (3.0*this->s[1].x[2] - this->s[2].x[2]);
     //this->s[0].x[0] = this->s[1].x[0] + 0.5 * _dt * (this->s[0].x[1] + this->s[1].x[1]);
+
+    // get rid of oldest state
+    this->s.pop_back();
+  }
+};
+
+
+/*
+ * Adams-Bashforth plus Adams-Moulton, all 3rd order
+ */
+template <class T>
+class AB3 : public MultistepIntegrator<T> {
+public:
+  AB3 (DynamicalSystem<T>& _system, const int32_t _level, const double _dt) :
+    MultistepIntegrator<T>(3, _system, _level, _dt)
+  {}
+
+  // always takes a position and velocity and turns it into a new position and velocity
+  void stepForward (const double _dt) {
+    const int32_t nd = this->g.getNumDerivs();
+
+    this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+
+    // add a new one to the head
+    DynamicState<T> newHead = this->s[0].stepHelper();
+    newHead.time += _dt;
+    this->s.insert(this->s.begin(), newHead);
+
+    // perform forward integration: AB3 for first, AM3 for all lower-order derivatives
+    this->s[0].x[nd-1] += _dt * (23.0*this->s[1].x[nd] - 16.0*this->s[2].x[nd] + 5.0*this->s[3].x[nd]) / 12.0;
+    for (int32_t deriv=nd-1; deriv>0; deriv--) {
+      this->s[0].x[deriv-1] += _dt * (5.0*this->s[0].x[deriv] + 8.0*this->s[1].x[deriv] - this->s[2].x[deriv]) / 12.0;
+    }
 
     // get rid of oldest state
     this->s.pop_back();
