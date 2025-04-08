@@ -87,6 +87,9 @@ In the future, I hope to do the following:
 * should calculation of the highest derivative come at the end of the current step or the beginning of the next one? The former would make for cleaner code.
 * add 10-th order Runge Kutta from here: https://sce.uhcl.edu/rungekutta/ (needs 17 stages)
 * add my ORCID to all github repo citations
+* add a jerk system, where the third time derivative is a function of the state
+* consider calculating the "true" solution in quad precision, or long double (80 bits)
+* can this architecture support implementing Richardson extrapolation by automatically creating a longer-time-step version?
 
 ### Other ODE libraries
 We have to mention [BOOST's odeint](https://www.boost.org/doc/libs/1_78_0/libs/numeric/odeint/doc/html/index.html);
