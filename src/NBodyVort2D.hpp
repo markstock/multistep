@@ -46,7 +46,7 @@ public:
     //}
   };
 
-  // perform n-body acceleration calculation; uses position and mass and radius squared
+  // perform n-body Biot-Savart integration; uses position and strength and radius squared
   Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos, const double _time) {
 
     // create the accumulator vector
@@ -60,9 +60,10 @@ public:
         for (int32_t j=0; j<num; ++j) {
           // 16 flops
           // the influence of particle j
-          Eigen::Vector2d dx = pos.segment(2*j,2) - pos.segment(2*i,2);
-          double invdist = 1.0/(dx.norm()+radiusSquared(j));
-          double factor = circ(j) * invdist * invdist;
+          const Eigen::Vector2d dx = pos.segment(2*j,2) - pos.segment(2*i,2);
+          // eigen's .norm() returns the length of the vector, .squaredNorm() is the square of that
+          const double invdistsqr = 1.0 / (dx.squaredNorm()+radiusSquared(j));
+          const double factor = circ(j) * invdistsqr;
           thisVel[0] -= dx[1] * factor;
           thisVel[1] += dx[0] * factor;
         }
