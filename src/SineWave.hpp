@@ -34,6 +34,13 @@ public:
     return vel;
   }
 
+  // given lower-derivative state, set highest derivative in structure
+  void setHighestDeriv(DynamicState<double>& _state, const double _time) {
+    // velocity is x[1]
+    _state.x[1] = std::cos(2.0*M_PI*_time/period) * (2.0*M_PI/period);
+    return;
+  }
+
   // just return theoretical exact position at the given time
   double getExact(const double _endtime) {
     return std::sin(2.0*M_PI*_endtime/period);
@@ -80,6 +87,13 @@ public:
     double acc = -std::sin(2.0*M_PI*_time/period) * std::pow(2.0*M_PI/period,2);
     //std::cout << "\n2nd deriv at t=" << _time << " is " << acc;
     return acc;
+  }
+
+  // given lower-derivative state, set highest derivative in structure
+  void setHighestDeriv(DynamicState<double>& _state, const double _time) {
+    // accel is x[2]
+    _state.x[2] = -std::sin(2.0*M_PI*_time/period) * std::pow(2.0*M_PI/period,2);
+    return;
   }
 
   // just return theoretical exact position at the given time

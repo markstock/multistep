@@ -7,6 +7,8 @@
 #pragma once
 
 #include "DynamicalSystem.hpp"
+#include "MultistageIntegrator.hpp"
+#include "MultistepIntegrator.hpp"
 
 #include <Eigen/Dense>
 
@@ -40,6 +42,15 @@ public:
     return acc;
   }
 
+  // set the derivative at the given point
+  void setHighestDeriv(DynamicState<Eigen::ArrayXd>& _state, const double _time) {
+    const Eigen::ArrayXd& pos = _state.x[0];
+    Eigen::ArrayXd& acc = _state.x[2];
+    acc = (pos.pow(-12) - pos.pow(-6)) / mass;
+    //std::cout << "\n2nd deriv at x=" << _pos << " and t=" << _time << " is " << acc;
+    return;
+  }
+
   // just return theoretical exact position at the given time
   Eigen::ArrayXd getExact(const double _endtime) {
     const int32_t maxSteps = 1000000;
@@ -53,8 +64,8 @@ public:
   // return all state at the given time (here: pos, vel, acc),
   // this is to populate back history for the multi-step integrators
   std::vector<Eigen::ArrayXd> getState(const double _endtime) {
-    int32_t maxSteps = 10000;
-    double dt = _endtime / maxSteps;
+    const int32_t maxSteps = 10000;
+    const double dt = _endtime / maxSteps;
     RK4<Eigen::ArrayXd> exact(*this,0);
     for (int32_t i=0; i<maxSteps; ++i) { exact.stepForward(dt); }
 

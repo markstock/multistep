@@ -53,24 +53,49 @@ public:
     Eigen::ArrayXd newVels = Eigen::ArrayXd::Zero(numVars);
 
     // evaluate the new vels
-    if (true) {
-      for (int32_t i=0; i<num; ++i) {
-        // new velocities on particle i
-        Eigen::Vector2d thisVel(0.0, 0.0);
-        for (int32_t j=0; j<num; ++j) {
-          // 16 flops
-          // the influence of particle j
-          const Eigen::Vector2d dx = pos.segment(2*j,2) - pos.segment(2*i,2);
-          // eigen's .norm() returns the length of the vector, .squaredNorm() is the square of that
-          const double invdistsqr = 1.0 / (dx.squaredNorm()+radiusSquared(j));
-          const double factor = circ(j) * invdistsqr;
-          thisVel[0] -= dx[1] * factor;
-          thisVel[1] += dx[0] * factor;
-        }
-        newVels.segment(2*i,2) = thisVel;
+    for (int32_t i=0; i<num; ++i) {
+      // new velocities on particle i
+      Eigen::Vector2d thisVel(0.0, 0.0);
+      for (int32_t j=0; j<num; ++j) {
+        // 16 flops
+        // the influence of particle j
+        const Eigen::Vector2d dx = pos.segment(2*j,2) - pos.segment(2*i,2);
+        // eigen's .norm() returns the length of the vector, .squaredNorm() is the square of that
+        const double invdistsqr = 1.0 / (dx.squaredNorm()+radiusSquared(j));
+        const double factor = circ(j) * invdistsqr;
+        thisVel[0] -= dx[1] * factor;
+        thisVel[1] += dx[0] * factor;
       }
+      newVels.segment(2*i,2) = thisVel;
     }
     return newVels;
+  }
+
+  // perform n-body Biot-Savart integration; uses position and strength and radius squared
+  void setHighestDeriv(DynamicState<Eigen::ArrayXd>& _state, const double _time) {
+    const Eigen::ArrayXd& pos = _state.x[0];
+    Eigen::ArrayXd& vel = _state.x[1];
+
+    // create the accumulator vector
+    vel = Eigen::ArrayXd::Zero(numVars);
+
+    // evaluate the new vels
+    for (int32_t i=0; i<num; ++i) {
+      // new velocities on particle i
+      Eigen::Vector2d thisVel(0.0, 0.0);
+      for (int32_t j=0; j<num; ++j) {
+        // 12 flops
+        // the influence from particle j
+        const Eigen::Vector2d dx = pos.segment(2*j,2) - pos.segment(2*i,2);
+        // eigen's .norm() returns the length of the vector, .squaredNorm() is the square of that
+        const double invdistsqr = 1.0 / (dx.squaredNorm()+radiusSquared(j));
+        const double factor = circ(j) * invdistsqr;
+        thisVel[0] -= dx[1] * factor;
+        thisVel[1] += dx[0] * factor;
+      }
+      vel.segment(2*i,2) = thisVel;
+    }
+    return;
   }
 
   // use the best method to approximate the final state

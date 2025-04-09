@@ -34,75 +34,93 @@ public:
     ic.x[0] = Eigen::ArrayXd::Zero(3*num);
     ic.x[1] = Eigen::ArrayXd::Zero(3*num);
     mass = Eigen::ArrayXd::Zero(num);
+    area = Eigen::ArrayXd::Zero(num);
     cD = Eigen::ArrayXd::Zero(num);
 
     // we store the unchanging properties here
-    mass = 2.1 + 2. * Eigen::ArrayXd::Random(num);
+    // mass is initially something like density (kg / dl)
+    mass = 2.3 + 2. * Eigen::ArrayXd::Random(num);
+    // area is from bullet to basketball
+    area = 0.01 + 0.3 * Eigen::ArrayXd::Random(num);
+    area = area.square();
+    // cD is from bullet to brick
     cD = Eigen::ArrayXd::Random(num);
-    cD = 0.002 + cD.square();
+    cD = 0.005 + cD.square();
+    // now adjust the mass to something more reasonable
+    mass = mass * area * 10.;
 
     // projectile elevation angle (theta) and orientation (phi) and initial speed
     Eigen::ArrayXd theta = 0.5 + 0.4 * Eigen::ArrayXd::Random(num);
     Eigen::ArrayXd phi = 3.1416 * Eigen::ArrayXd::Random(num);
     Eigen::ArrayXd vel = 50. + 25. * Eigen::ArrayXd::Random(num);
-    ic.x[1] = 1.0 * Eigen::ArrayXd::Random(numVars);
+    //ic.x[1] = 1.0 * Eigen::ArrayXd::Random(numVars);
+    // set the vector velocities
     for (int32_t i=0; i<num; ++i) {
       ic.x[1][3*i+0] = vel[i] * std::cos(theta[i]) * std::cos(phi[i]);
       ic.x[1][3*i+1] = vel[i] * std::cos(theta[i]) * std::sin(phi[i]);
       ic.x[1][3*i+2] = vel[i] * std::sin(theta[i]);
-      //std::cout << "projectile mass " << mass[i] << " cd " << cD[i] << " and vel " << ic.x[1].segment(3*i,3).transpose() << std::endl;
+      std::cout << "projectile mass " << mass[i] << " area " << area[i] << " cd " << cD[i] << " and vel " << ic.x[1].segment(3*i,3).transpose() << std::endl;
     }
     //std::cout << "Projectiles3D::Projectiles3D " << ic.x[0].segment(0,4).transpose() << std::endl;
   };
 
-  // perform force calculation; uses velocity, mass, cD (not position!)
-  // NEED TO ACCEPT FULL STATE, not just positions!!!
-  Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos, const double _time) {
+  // old way: cannot compute forces without velocities
+  Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd _pos, const double _time) {
+    assert(false and "getHighestDeriv incomplete!");
+    return Eigen::ArrayXd::Zero(numVars);
+  }
+
+  // perform force calculation; uses velocity, mass, cD (but not position!)
+  void setHighestDeriv(DynamicState<Eigen::ArrayXd>& _state, const double _time) {
+    //const Eigen::ArrayXd& pos = _state.x[0];
+    const Eigen::ArrayXd& vel = _state.x[1];
+    Eigen::ArrayXd& acc = _state.x[2];
 
     // generate the output vector (3 accelerations per projectile)
-    Eigen::ArrayXd newVal = Eigen::ArrayXd::Zero(numVars);
+    acc = Eigen::ArrayXd::Zero(numVars);
 
     // evaluate forces
     for (int32_t i=0; i<num; ++i) {
       // new accelerations on particle i
       Eigen::Vector3d newAcc(0.0, 0.0, grav);
-      // 18 flops
-      //Eigen::Vector3d vel = vel.segment(3*j,3) - vel.segment(3*i,3);
-      //const double drag = 0.5*cD(i)*rho*vel.squaredNorm();
-      //newAcc -= vel * drag / mass(i);
-      newVal.segment(3*i,3) = newAcc;
+      Eigen::Vector3d thisVel = vel.segment(3*i,3);
+      const double drag = 0.5 * cD[i] * area[i] * rho * thisVel.squaredNorm();
+      // normalize velocity to find direction of drag force
+      thisVel.norm();
+      newAcc -= thisVel * (drag / mass[i]);
+      acc.segment(3*i,3) = newAcc;
     }
-    return newVal;
+    return;
   }
 
   // use the best method to approximate the final state
   Eigen::ArrayXd getExact(const double _endtime) {
-    int32_t maxSteps = 1000000;
-    double dt = _endtime / maxSteps;
+    const int32_t maxSteps = 1000000;
+    const double dt = _endtime / maxSteps;
     RK4<Eigen::ArrayXd> exact(*this,0);
     //Verlet<Eigen::ArrayXd> exact(*this,0,dt);
     //AB5<Eigen::ArrayXd> exact(*this,0,dt);
     std::cout << "'Exact' solution is from running " << maxSteps << " steps of RK4 at dt= " << dt << std::endl;
     for (int32_t i=0; i<maxSteps; ++i) {
       exact.stepForward(dt);
-      if (i%10000 == 0) std::cout << "    " << dt*i << "  " << exact.getPosition().segment(3,3).transpose() << std::endl;
+      if (i%2000 == 0) std::cout << "    " << dt*i << "  " << exact.getPosition().segment(3,3).transpose() << std::endl;
     }
+    std::cout << "Exact positions:\n" << exact.getPosition() << std::endl;
     return exact.getPosition();
   }
 
   // return all state at the given time (here: pos, vel, acc)
   std::vector<Eigen::ArrayXd> getState(const double _endtime) {
-    int32_t maxSteps = 10000;
-    double dt = _endtime / maxSteps;
+    const int32_t maxSteps = 10000;
+    const double dt = _endtime / maxSteps;
     RK4<Eigen::ArrayXd> exact(*this,0);
     for (int32_t i=0; i<maxSteps; ++i) {
       exact.stepForward(dt);
     }
     // set up the return state vector, with new forces
-    std::vector<Eigen::ArrayXd> state({exact.getPosition(),
-                               exact.getVelocity(),
-                               getHighestDeriv(exact.getPosition(),_endtime)});
-    return state;
+    DynamicState<Eigen::ArrayXd> state = exact.getDynamicState();
+    setHighestDeriv(state, _endtime);
+    return state.x;
   }
 
   // find the error norm
@@ -111,7 +129,7 @@ public:
   }
 
   double getEndTime() {
-    return 10.0;
+    return 5.0;
   }
 
 private:
@@ -119,6 +137,7 @@ private:
   int32_t num;
   // these values are constant in time and unique to this system
   Eigen::ArrayXd mass;				// kg
+  Eigen::ArrayXd area;				// in m^2
   Eigen::ArrayXd cD;				// non-dimensional
   // physical costants
   const double grav = -9.80665;		// m / s^2

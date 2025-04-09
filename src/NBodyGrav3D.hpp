@@ -142,10 +142,36 @@ public:
   };
 
   // perform n-body acceleration calculation; uses position and mass and radius squared
-  Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd pos, const double _time) {
+  Eigen::ArrayXd getHighestDeriv(const Eigen::ArrayXd _pos, const double _time) {
 
     // generate the output vector (3 accelerations per projectile)
     Eigen::ArrayXd newVal = Eigen::ArrayXd::Zero(numVars);
+
+    // evaluate forces
+    for (int32_t i=0; i<num; ++i) {
+      // new accelerations on particle i
+      Eigen::Vector3d newAcc(0.0, 0.0, 0.0);
+      for (int32_t j=0; j<num; ++j) {
+        if (i != j) {
+          // 20 flops
+          // the influence of particle j
+          Eigen::Vector3d dx = _pos.segment(3*j,3) - _pos.segment(3*i,3);
+          double invdist = 1.0/(dx.norm()+radiusSquared(j));
+          newAcc += dx * (mass(j) * invdist * invdist * invdist);
+        }
+      }
+      newVal.segment(3*i,3) = newAcc;
+    }
+    return newVal;
+  }
+
+  // perform n-body acceleration calculation; uses position and mass and radius squared
+  void setHighestDeriv(DynamicState<Eigen::ArrayXd>& _state, const double _time) {
+    const Eigen::ArrayXd& pos = _state.x[0];
+    Eigen::ArrayXd& acc = _state.x[2];
+
+    // generate the output vector (3 accelerations per projectile)
+    acc = Eigen::ArrayXd::Zero(numVars);
 
     // evaluate forces
     for (int32_t i=0; i<num; ++i) {
@@ -160,9 +186,9 @@ public:
           newAcc += dx * (mass(j) * invdist * invdist * invdist);
         }
       }
-      newVal.segment(3*i,3) = newAcc;
+      acc.segment(3*i,3) = newAcc;
     }
-    return newVal;
+    return;
   }
 
   // use the best method to approximate the final state
@@ -193,12 +219,10 @@ public:
     for (int32_t i=0; i<maxSteps; ++i) {
       exact.stepForward(dt);
     }
-    //return exact.getState();
     // set up the return state vector, with new forces
-    std::vector<Eigen::ArrayXd> state({exact.getPosition(),
-                               exact.getVelocity(),
-                               getHighestDeriv(exact.getPosition(),_endtime)});
-    return state;
+    DynamicState<Eigen::ArrayXd> state = exact.getDynamicState();
+    setHighestDeriv(state, _endtime);
+    return state.x;
   }
 
   // use state to calculate energy

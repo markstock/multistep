@@ -6,12 +6,13 @@
 
 #include "DynamicState.hpp"
 
-#include "NBodyVort2D.hpp"
-#include "NBodyGrav3D.hpp"
 #include "SineWave.hpp"
 #include "SpringMass.hpp"
 #include "LennardJones.hpp"
+#include "NBodyGrav3D.hpp"
+#include "NBodyVort2D.hpp"
 #include "Projectiles3D.hpp"
+//#include "NBodyVort3D.hpp"
 
 #include "ForwardIntegrator.hpp"
 #include "MultistageIntegrator.hpp"
@@ -52,8 +53,8 @@ int main () {
   //SpringMass s(100,10.0/9.25);
   //LennardJones s(100,1.0,0.02);
   //NBodyGrav3D s(5);
-  //NBodyGrav3D s(7);
-  NBodyVort2D s(32);
+  NBodyGrav3D s(7);
+  //NBodyVort2D s(32);
   //Projectiles3D s(100);
 
   // each system has its own end time

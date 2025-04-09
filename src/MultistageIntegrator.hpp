@@ -48,7 +48,8 @@ public:
   void stepForward (const double _dt) {
 
     // ask the system to find its new highest-level derivative
-    this->s[0].x[this->g.getNumDerivs()] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    //this->s[0].x[this->g.getNumDerivs()] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0], this->getTime());
 
     // from that state, project forward
     DynamicState<T> newHead = this->EulerStep(this->s[0], _dt);
@@ -77,8 +78,9 @@ public:
   void stepForward (const double _dt) {
 
     // ask the system to find its new highest-level derivative
-    int32_t numDeriv = this->g.getNumDerivs();
-    this->s[0].x[numDeriv] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    //int32_t numDeriv = this->g.getNumDerivs();
+    //this->s[0].x[numDeriv] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0], this->getTime());
 
     // first step: set stage 1 to the last solution (now s[1])
 
@@ -88,13 +90,12 @@ public:
 
     // from that state, project forward
     DynamicState<T> stage2 = this->EulerStep(this->s[0], _dt);
-    stage2.x[numDeriv] = this->g.getHighestDeriv(stage2.x[0], this->getTime()+_dt);
+    //stage2.x[numDeriv] = this->g.getHighestDeriv(stage2.x[0], this->getTime()+_dt);
+    this->g.setHighestDeriv(stage2, this->getTime()+_dt);
 
-    /*
     // if vel:
-    stage2.x[0] = s[0].x[0] + hdt*s[0].x[1];
-    stage2.x[1] = g.getHighestDeriv(stage2.x[0]);
-    */
+    //stage2.x[0] = s[0].x[0] + hdt*s[0].x[1];
+    //stage2.x[1] = g.getHighestDeriv(stage2.x[0]);
 
     // if accel:
     //stage2.x[0] = s[0].x[0] + hdt*s[0].x[1];
@@ -103,20 +104,18 @@ public:
     //stage2.x[1] = s[0].x[1] + hdt*s[0].x[2];
     //stage2.x[2] = g.getHighestDeriv(stage2.x[0]);
 
-    /*
     // if jerk:
-    stage2.x[0] = s[0].x[0] + hdt*s[0].x[1] + hdt*hdt*s[0].x[2]/2.0 + hdt*hdt*hdt*s[0].x[3]/6.0;
-    stage2.x[1] = s[0].x[1] + hdt*s[0].x[2] + hdt*hdt*s[0].x[3]/2.0;
-    stage2.x[2] = s[0].x[2] + hdt*s[0].x[3];
-    stage2.x[3] = g.getHighestDeriv(stage2.x[0]);
-    */
+    //stage2.x[0] = s[0].x[0] + hdt*s[0].x[1] + hdt*hdt*s[0].x[2]/2.0 + hdt*hdt*hdt*s[0].x[3]/6.0;
+    //stage2.x[1] = s[0].x[1] + hdt*s[0].x[2] + hdt*hdt*s[0].x[3]/2.0;
+    //stage2.x[2] = s[0].x[2] + hdt*s[0].x[3];
+    //stage2.x[3] = g.getHighestDeriv(stage2.x[0]);
 
     // add a new state to the head
     //DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
     DynamicState<T> newHead = this->s[0].stepHelper();
 
     // position updates via weighted average velocity
-    for (int32_t d=0; d<numDeriv; d++) {
+    for (int32_t d=0; d<this->g.getNumDerivs(); d++) {
       newHead.x[d] += _dt * (0.5*this->s[0].x[d+1] + 0.5*stage2.x[d+1]);
       //s[0].x[d] = s[1].x[d] + _dt * ((1.0-oo2a)*s[1].x[d+1] + oo2a*stage2.x[d+1]);
     }
@@ -149,20 +148,22 @@ public:
   void stepForward (const double _dt) {
 
     // ask the system to find its new highest-level derivative
-    int32_t numDeriv = this->g.getNumDerivs();
-    this->s[0].x[numDeriv] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    //int32_t numDeriv = this->g.getNumDerivs();
+    //this->s[0].x[numDeriv] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0], this->getTime());
 
     // first step: set stage 1 to the last solution (now s[1])
 
     // from that state, project forward
     DynamicState<T> stage2 = this->EulerStep(this->s[0], 2.0/3.0*_dt);
-    stage2.x[numDeriv] = this->g.getHighestDeriv(stage2.x[0], this->getTime()+2.0/3.0*_dt);
+    //stage2.x[numDeriv] = this->g.getHighestDeriv(stage2.x[0], this->getTime()+2.0/3.0*_dt);
+    this->g.setHighestDeriv(stage2, this->getTime()+2.0/3.0*_dt);
 
     // add a new state to the head
     DynamicState<T> newHead = this->s[0].stepHelper();
 
     // position updates via weighted average velocity
-    for (int32_t d=0; d<numDeriv; d++) {
+    for (int32_t d=0; d<this->g.getNumDerivs(); d++) {
       newHead.x[d] += _dt * (0.25*this->s[0].x[d+1] + 0.75*stage2.x[d+1]);
     }
 
@@ -193,26 +194,29 @@ public:
   void stepForward (const double _dt) {
 
     // ask the system to find its new highest-level derivative
-    const int32_t nd = this->g.getNumDerivs();
-    this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    //const int32_t nd = this->g.getNumDerivs();
+    //this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0], this->getTime());
 
     // first step: set stage 1 to the last solution (now s[1])
 
     // from that state, project forward
     DynamicState<T> stage2 = this->EulerStep(this->s[0], 0.5*_dt);
-    stage2.x[nd] = this->g.getHighestDeriv(stage2.x[0], this->getTime()+0.5*_dt);
+    //stage2.x[nd] = this->g.getHighestDeriv(stage2.x[0], this->getTime()+0.5*_dt);
+    this->g.setHighestDeriv(stage2, this->getTime()+0.5*_dt);
 
     // and do it again (using initial positions, new derivs)
     // NEED A SMARTER WAY TO DO THIS - I AM CONFUSED!
     // need to add -1*stage1 and 2*stage2 to get test positions: stage3
     DynamicState<T> stage3 = this->EulerStep(this->s[0], stage2, _dt);
-    stage3.x[nd] = this->g.getHighestDeriv(stage3.x[0], this->getTime()+_dt);
+    //stage3.x[nd] = this->g.getHighestDeriv(stage3.x[0], this->getTime()+_dt);
+    this->g.setHighestDeriv(stage3, this->getTime()+_dt);
 
     // add a new state to the head
     DynamicState<T> newHead = this->s[0].stepHelper();
 
     // position updates via weighted average velocity
-    for (int32_t d=0; d<nd; d++) {
+    for (int32_t d=0; d<this->g.getNumDerivs(); d++) {
       newHead.x[d] += _dt * (this->s[0].x[d+1] + 4.0*stage2.x[d+1] + stage3.x[d+1]) / 6.0;
     }
 
@@ -243,24 +247,27 @@ public:
   void stepForward (const double _dt) {
 
     // ask the system to find its new highest-level derivative
-    const int32_t nd = this->g.getNumDerivs();
-    this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    //const int32_t nd = this->g.getNumDerivs();
+    //this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0], this->getTime());
 
     // first step: set stage 1 to the last solution (now s[1])
 
     // from that state, project forward
     DynamicState<T> stage2 = this->EulerStep(this->s[0], 0.5*_dt);
-    stage2.x[nd] = this->g.getHighestDeriv(stage2.x[0], this->getTime()+0.5*_dt);
+    //stage2.x[nd] = this->g.getHighestDeriv(stage2.x[0], this->getTime()+0.5*_dt);
+    this->g.setHighestDeriv(stage2, this->getTime()+0.5*_dt);
 
     // and do it again (using initial positions, new derivs)
     DynamicState<T> stage3 = this->EulerStep(this->s[0], stage2, 0.75*_dt);
-    stage3.x[nd] = this->g.getHighestDeriv(stage3.x[0], this->getTime()+0.75*_dt);
+    //stage3.x[nd] = this->g.getHighestDeriv(stage3.x[0], this->getTime()+0.75*_dt);
+    this->g.setHighestDeriv(stage3, this->getTime()+0.75*_dt);
 
     // add a new state to the head
     DynamicState<T> newHead = this->s[0].stepHelper();
 
     // position updates via weighted average velocity
-    for (int32_t d=0; d<nd; d++) {
+    for (int32_t d=0; d<this->g.getNumDerivs(); d++) {
       newHead.x[d] += _dt * (2.0*this->s[0].x[d+1] + 3.0*stage2.x[d+1] + 4.0*stage3.x[d+1]) / 9.0;
     }
 
@@ -291,24 +298,27 @@ public:
   void stepForward (const double _dt) {
 
     // ask the system to find its new highest-level derivative
-    const int32_t nd = this->g.getNumDerivs();
-    this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    //const int32_t nd = this->g.getNumDerivs();
+    //this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0], this->getTime());
 
     // first step: set stage 1 to the last solution (now s[1])
 
     // from that state, project forward
     DynamicState<T> stage2 = this->EulerStep(this->s[0], _dt/3.0);
-    stage2.x[nd] = this->g.getHighestDeriv(stage2.x[0], this->getTime()+_dt/3.0);
+    //stage2.x[nd] = this->g.getHighestDeriv(stage2.x[0], this->getTime()+_dt/3.0);
+    this->g.setHighestDeriv(stage2, this->getTime()+_dt/3.0);
 
     // and do it again (using initial positions, new derivs)
     DynamicState<T> stage3 = this->EulerStep(this->s[0], stage2, _dt*2.0/3.0);
-    stage3.x[nd] = this->g.getHighestDeriv(stage3.x[0], this->getTime()+_dt*2.0/3.0);
+    //stage3.x[nd] = this->g.getHighestDeriv(stage3.x[0], this->getTime()+_dt*2.0/3.0);
+    this->g.setHighestDeriv(stage3, this->getTime()+_dt*2.0/3.0);
 
     // add a new state to the head
     DynamicState<T> newHead = this->s[0].stepHelper();
 
     // position updates via weighted average velocity
-    for (int32_t d=0; d<nd; d++) {
+    for (int32_t d=0; d<this->g.getNumDerivs(); d++) {
       newHead.x[d] += _dt * (this->s[0].x[d+1] + 3.0*stage3.x[d+1]) / 4.0;
     }
 
@@ -337,14 +347,14 @@ public:
   }
   
   // Most write-ups of this are incorrect! Does nobody edit their shit?
-  // Note that this could be improved using the 3/8 rule, see wikipedia
   void stepForward (const double _dt) {
     // ask the system to find its new highest-level derivative
     //std::cout << "in RK4::stepForward " << s[0].x[0].segment(0,4).transpose() << std::endl;
 
     // solve for top derivative at current state
-    const int32_t nd = this->g.getNumDerivs();
-    this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    //const int32_t nd = this->g.getNumDerivs();
+    //this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0], this->getTime());
 
     // first step: set stage 1 to the last solution (now s[1])
     const double hdt = 0.5*_dt;
@@ -366,34 +376,37 @@ public:
 
     // second step: project forward a half step using that acceleration
     DynamicState<T> stage2 = this->s[0].stepHelper();
-    for (int32_t d=0; d<nd; d++) stage2.x[d] += hdt*this->s[0].x[d+1];
+    for (int32_t d=0; d<this->g.getNumDerivs(); d++) stage2.x[d] += hdt*this->s[0].x[d+1];
     //for (int32_t d=0; d<nd; d++) stage2.x[d] = s[0].x[d] + hdt*s[0].x[d+1];
     //stage2.x[0] = s[0].x[0] + hdt*s[0].x[1];
     //stage2.x[1] = s[0].x[1] + hdt*s[0].x[2];
-    stage2.x[nd] = this->g.getHighestDeriv(stage2.x[0], this->getTime()+hdt);
+    //stage2.x[nd] = this->g.getHighestDeriv(stage2.x[0], this->getTime()+hdt);
+    this->g.setHighestDeriv(stage2, this->getTime()+hdt);
 
     // third step: project forward a half step from initial using the new acceleration
     DynamicState<T> stage3 = this->s[0].stepHelper();
-    for (int32_t d=0; d<nd; d++) stage3.x[d] += hdt*stage2.x[d+1];
+    for (int32_t d=0; d<this->g.getNumDerivs(); d++) stage3.x[d] += hdt*stage2.x[d+1];
     //DynamicState stage3(nd,0,0);
     //stage3.x[0] = s[0].x[0] + hdt*stage2.x[1];
     //stage3.x[1] = s[0].x[1] + hdt*stage2.x[2];
-    stage3.x[nd] = this->g.getHighestDeriv(stage3.x[0], this->getTime()+hdt);
+    //stage3.x[nd] = this->g.getHighestDeriv(stage3.x[0], this->getTime()+hdt);
+    this->g.setHighestDeriv(stage3, this->getTime()+hdt);
 
     // fourth step: project forward a full step from initial using the newest acceleration
     DynamicState<T> stage4 = this->s[0].stepHelper();
-    for (int32_t d=0; d<nd; d++) stage4.x[d] += _dt*stage3.x[d+1];
+    for (int32_t d=0; d<this->g.getNumDerivs(); d++) stage4.x[d] += _dt*stage3.x[d+1];
     //DynamicState stage4(nd,0,0);
     //stage4.x[0] = s[0].x[0] + _dt*stage3.x[1];
     //stage4.x[1] = s[0].x[1] + _dt*stage3.x[2];
-    stage4.x[nd] = this->g.getHighestDeriv(stage4.x[0], this->getTime()+_dt);
+    //stage4.x[nd] = this->g.getHighestDeriv(stage4.x[0], this->getTime()+_dt);
+    this->g.setHighestDeriv(stage4, this->getTime()+_dt);
 
     // add a new state to the head
     //DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
     DynamicState<T> newHead = this->s[0].stepHelper();
 
     // position, vel, etc. updates use weighted averages
-    for (int32_t d=0; d<nd; d++) {
+    for (int32_t d=0; d<this->g.getNumDerivs(); d++) {
       newHead.x[d] += _dt * (this->s[0].x[d+1] + 2.0*stage2.x[d+1] + 2.0*stage3.x[d+1] + stage4.x[d+1]) / 6.0;
     }
 
@@ -429,8 +442,9 @@ public:
     //std::cout << "in RK4ter::stepForward " << s[0].x[0].segment(0,4).transpose() << std::endl;
 
     // solve for top derivative at current state
-    const int32_t nd = this->g.getNumDerivs();
-    this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    //const int32_t nd = this->g.getNumDerivs();
+    //this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0], this->getTime());
 
     // first step: set stage 1 to the last solution (now s[1])
     const double hdt = 0.5*_dt;
@@ -452,34 +466,37 @@ public:
 
     // second step: project forward a half step using that acceleration
     DynamicState<T> stage2 = this->s[0].stepHelper();
-    for (int32_t d=0; d<nd; d++) stage2.x[d] += hdt*this->s[0].x[d+1];
+    for (int32_t d=0; d<this->g.getNumDerivs(); d++) stage2.x[d] += hdt*this->s[0].x[d+1];
     //for (int32_t d=0; d<nd; d++) stage2.x[d] = s[0].x[d] + hdt*s[0].x[d+1];
     //stage2.x[0] = s[0].x[0] + hdt*s[0].x[1];
     //stage2.x[1] = s[0].x[1] + hdt*s[0].x[2];
-    stage2.x[nd] = this->g.getHighestDeriv(stage2.x[0], this->getTime()+hdt);
+    //stage2.x[nd] = this->g.getHighestDeriv(stage2.x[0], this->getTime()+hdt);
+    this->g.setHighestDeriv(stage2, this->getTime()+hdt);
 
     // third step: project forward a half step from initial using the new acceleration
     DynamicState<T> stage3 = this->s[0].stepHelper();
-    for (int32_t d=0; d<nd; d++) stage3.x[d] += hdt*stage2.x[d+1];
+    for (int32_t d=0; d<this->g.getNumDerivs(); d++) stage3.x[d] += hdt*stage2.x[d+1];
     //DynamicState stage3(nd,0,0);
     //stage3.x[0] = s[0].x[0] + hdt*stage2.x[1];
     //stage3.x[1] = s[0].x[1] + hdt*stage2.x[2];
-    stage3.x[nd] = this->g.getHighestDeriv(stage3.x[0], this->getTime()+hdt);
+    //stage3.x[nd] = this->g.getHighestDeriv(stage3.x[0], this->getTime()+hdt);
+    this->g.setHighestDeriv(stage3, this->getTime()+hdt);
 
     // fourth step: project forward a full step from initial using the newest acceleration
     DynamicState<T> stage4 = this->s[0].stepHelper();
-    for (int32_t d=0; d<nd; d++) stage4.x[d] += _dt*stage3.x[d+1];
+    for (int32_t d=0; d<this->g.getNumDerivs(); d++) stage4.x[d] += _dt*stage3.x[d+1];
     //DynamicState stage4(nd,0,0);
     //stage4.x[0] = s[0].x[0] + _dt*stage3.x[1];
     //stage4.x[1] = s[0].x[1] + _dt*stage3.x[2];
-    stage4.x[nd] = this->g.getHighestDeriv(stage4.x[0], this->getTime()+_dt);
+    //stage4.x[nd] = this->g.getHighestDeriv(stage4.x[0], this->getTime()+_dt);
+    this->g.setHighestDeriv(stage4, this->getTime()+_dt);
 
     // add a new state to the head
     //DynamicState newHead(g.getNumDerivs(), s[0].level, s[0].step++);
     DynamicState<T> newHead = this->s[0].stepHelper();
 
     // position, vel, etc. updates use weighted averages
-    for (int32_t d=0; d<nd; d++) {
+    for (int32_t d=0; d<this->g.getNumDerivs(); d++) {
       newHead.x[d] += _dt * (this->s[0].x[d+1] + 2.0*stage2.x[d+1] + 2.0*stage3.x[d+1] + stage4.x[d+1]) / 6.0;
     }
 
