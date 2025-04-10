@@ -65,6 +65,8 @@ public:
     return 10.0;
   }
 
+  bool hasDamping(void) { return false; }
+
 protected:
   const double m1, m2, th1, th2;
 };
