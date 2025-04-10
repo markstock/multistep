@@ -56,7 +56,7 @@ public:
 
     // ask the system to find its new highest-level derivative
     //this->s[0].x[numDerivs] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
-    this->g.setHighestDeriv(this->s[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0]);
 
     // add a new state to the head
     DynamicState<T> newHead = this->s[0].stepHelper();
@@ -95,7 +95,7 @@ public:
 
     // ask the system to find its new highest-level derivative
     //this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
-    this->g.setHighestDeriv(this->s[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0]);
 
     // add a new one to the head
     DynamicState<T> newHead = this->s[0].stepHelper();
@@ -130,7 +130,7 @@ public:
 
     // ask the system to find its new highest-level derivative
     //this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
-    this->g.setHighestDeriv(this->s[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0]);
 
     // add a new one to the head
     DynamicState<T> newHead = this->s[0].stepHelper();
@@ -169,7 +169,7 @@ public:
 
     // ask the system to find its new highest-level derivative
     //this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
-    this->g.setHighestDeriv(this->s[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0]);
 
     // add a new one to the head
     DynamicState<T> newHead = this->s[0].stepHelper();
@@ -210,7 +210,7 @@ public:
 
     // ask the system to find its new highest-level derivative
     //this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
-    this->g.setHighestDeriv(this->s[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0]);
 
     // add a new one to the head
     DynamicState<T> newHead = this->s[0].stepHelper();
@@ -246,7 +246,7 @@ public:
 
     // ask the system to find its new highest-level derivative
     //this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
-    this->g.setHighestDeriv(this->s[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0]);
 
     // add a new one to the head
     DynamicState<T> newHead = this->s[0].stepHelper();
@@ -288,7 +288,7 @@ public:
 
     // ask the system to find its new highest-level derivative
     //this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
-    this->g.setHighestDeriv(this->s[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0]);
 
     // add a new one to the head
     DynamicState<T> newHead(this->g.getNumDerivs(), this->s[0].level, this->s[0].step++);
@@ -327,7 +327,7 @@ public:
 
     // ask the system to find its new highest-level derivative
     //this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
-    this->g.setHighestDeriv(this->s[0], this->getTime());
+    this->g.setHighestDeriv(this->s[0]);
 
     // add a new one to the head
     DynamicState<T> newHead(this->g.getNumDerivs(), this->s[0].level, this->s[0].step++);

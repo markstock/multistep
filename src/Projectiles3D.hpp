@@ -71,7 +71,7 @@ public:
   }
 
   // perform force calculation; uses velocity, mass, cD (but not position!)
-  void setHighestDeriv(DynamicState<Eigen::ArrayXd>& _state, const double _time) {
+  void setHighestDeriv(DynamicState<Eigen::ArrayXd>& _state) {
     //const Eigen::ArrayXd& pos = _state.x[0];
     const Eigen::ArrayXd& vel = _state.x[1];
     Eigen::ArrayXd& acc = _state.x[2];
@@ -120,7 +120,7 @@ public:
     }
     // set up the return state vector, with new forces
     DynamicState<Eigen::ArrayXd> state = exact.getDynamicState();
-    setHighestDeriv(state, _endtime);
+    setHighestDeriv(state);
     return state.x;
   }
 

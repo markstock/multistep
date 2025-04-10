@@ -35,9 +35,9 @@ public:
   }
 
   // given lower-derivative state, set highest derivative in structure
-  void setHighestDeriv(DynamicState<double>& _state, const double _time) {
+  void setHighestDeriv(DynamicState<double>& _state) {
     // velocity is x[1]
-    _state.x[1] = std::cos(2.0*M_PI*_time/period) * (2.0*M_PI/period);
+    _state.x[1] = std::cos(2.0*M_PI*_state.getTime()/period) * (2.0*M_PI/period);
     return;
   }
 
@@ -92,9 +92,9 @@ public:
   }
 
   // given lower-derivative state, set highest derivative in structure
-  void setHighestDeriv(DynamicState<double>& _state, const double _time) {
+  void setHighestDeriv(DynamicState<double>& _state) {
     // accel is x[2]
-    _state.x[2] = -std::sin(2.0*M_PI*_time/period) * std::pow(2.0*M_PI/period,2);
+    _state.x[2] = -std::sin(2.0*M_PI*_state.getTime()/period) * std::pow(2.0*M_PI/period,2);
     return;
   }
 

@@ -45,7 +45,7 @@ public:
   }
 
   // set the derivative at the given point
-  void setHighestDeriv(DynamicState<Eigen::ArrayXd>& _state, const double _time) {
+  void setHighestDeriv(DynamicState<Eigen::ArrayXd>& _state) {
     const Eigen::ArrayXd& pos = _state.x[0];
     Eigen::ArrayXd& acc = _state.x[2];
     const Eigen::ArrayXd tmp = 2.0*M_PI / period;

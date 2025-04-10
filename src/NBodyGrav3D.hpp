@@ -166,7 +166,7 @@ public:
   }
 
   // perform n-body acceleration calculation; uses position and mass and radius squared
-  void setHighestDeriv(DynamicState<Eigen::ArrayXd>& _state, const double _time) {
+  void setHighestDeriv(DynamicState<Eigen::ArrayXd>& _state) {
     const Eigen::ArrayXd& pos = _state.x[0];
     Eigen::ArrayXd& acc = _state.x[2];
 
@@ -221,7 +221,7 @@ public:
     }
     // set up the return state vector, with new forces
     DynamicState<Eigen::ArrayXd> state = exact.getDynamicState();
-    setHighestDeriv(state, _endtime);
+    setHighestDeriv(state);
     return state.x;
   }
 

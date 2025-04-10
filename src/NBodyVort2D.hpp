@@ -72,7 +72,7 @@ public:
   }
 
   // perform n-body Biot-Savart integration; uses position and strength and radius squared
-  void setHighestDeriv(DynamicState<Eigen::ArrayXd>& _state, const double _time) {
+  void setHighestDeriv(DynamicState<Eigen::ArrayXd>& _state) {
     const Eigen::ArrayXd& pos = _state.x[0];
     Eigen::ArrayXd& vel = _state.x[1];
 
