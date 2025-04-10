@@ -53,9 +53,9 @@ int main () {
   //SpringMass s(100,10.0/9.25);
   //LennardJones s(100,1.0,0.02);
   //NBodyGrav3D s(5);
-  NBodyGrav3D s(7);
+  //NBodyGrav3D s(7);
   //NBodyVort2D s(32);
-  //Projectiles3D s(100);
+  Projectiles3D s(64);
 
   // each system has its own end time
   double endtime = s.getEndTime();
@@ -67,12 +67,12 @@ int main () {
   std::cout << "Euler\t\t";
   std::cout << "RK2\t\t";
   std::cout << "AB2\t\t";
-  if (s.hasAccel()) std::cout << "Verlet\t\t";
+  if (s.hasAccel() and not s.hasDamping()) std::cout << "Verlet\t\t";
   std::cout << "RK3\t\t";
   std::cout << "AB3\t\t";
   std::cout << "RK4\t\t";
   std::cout << "AB4\t\t";
-  if (s.hasAccel()) std::cout << "Verlet4\t\t";
+  if (s.hasAccel() and not s.hasDamping()) std::cout << "Verlet4\t\t";
   if (s.hasAccel() and doHamming) std::cout << "Ham416\t\t";
   if (s.hasAccel() and doHamming) std::cout << "Ham418\t\t";
   std::cout << "AB5";
@@ -134,7 +134,7 @@ int main () {
       std::cout << "\t" << a2.getError(exact);
     }
 
-    if (s.hasAccel()) {
+    if (s.hasAccel() and not s.hasDamping()) {
       Verlet<TEMPLATEVAR> ve(s,0,dt);
       for (int32_t i=0; i<maxSteps; ++i) {
         ve.stepForward(dt);
@@ -200,7 +200,7 @@ int main () {
       std::cout << "\t" << ab.getError(exact);
     }
 
-    if (s.hasAccel()) {
+    if (s.hasAccel() and not s.hasDamping()) {
       RichardsonVerlet<TEMPLATEVAR> rv(s,0,dt);
       for (int32_t i=0; i<maxSteps; ++i) {
         rv.stepForward(dt);

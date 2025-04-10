@@ -63,6 +63,8 @@ public:
     return 10.0;
   }
 
+  bool hasDamping(void) { return false; }
+
 protected:
   const double period;
 };
@@ -119,6 +121,8 @@ public:
   double getEndTime() {
     return 10.0;
   }
+
+  bool hasDamping(void) { return false; }
 
 protected:
   const double period;

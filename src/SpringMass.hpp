@@ -79,6 +79,8 @@ public:
     return 10.0;
   }
 
+  bool hasDamping(void) { return false; }
+
 protected:
   // number of bodies
   int32_t num;

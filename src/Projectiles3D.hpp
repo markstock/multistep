@@ -47,19 +47,19 @@ public:
     cD = Eigen::ArrayXd::Random(num);
     cD = 0.005 + cD.square();
     // now adjust the mass to something more reasonable
-    mass = mass * area * 10.;
+    mass = mass * area * 100. * cD;
 
     // projectile elevation angle (theta) and orientation (phi) and initial speed
     Eigen::ArrayXd theta = 0.5 + 0.4 * Eigen::ArrayXd::Random(num);
     Eigen::ArrayXd phi = 3.1416 * Eigen::ArrayXd::Random(num);
-    Eigen::ArrayXd vel = 50. + 25. * Eigen::ArrayXd::Random(num);
+    Eigen::ArrayXd vel = 30. + 20. * Eigen::ArrayXd::Random(num);
     //ic.x[1] = 1.0 * Eigen::ArrayXd::Random(numVars);
     // set the vector velocities
     for (int32_t i=0; i<num; ++i) {
       ic.x[1][3*i+0] = vel[i] * std::cos(theta[i]) * std::cos(phi[i]);
       ic.x[1][3*i+1] = vel[i] * std::cos(theta[i]) * std::sin(phi[i]);
       ic.x[1][3*i+2] = vel[i] * std::sin(theta[i]);
-      std::cout << "projectile mass " << mass[i] << " area " << area[i] << " cd " << cD[i] << " and vel " << ic.x[1].segment(3*i,3).transpose() << std::endl;
+      //std::cout << "projectile mass " << mass[i] << " area " << area[i] << " cd " << cD[i] << " and vel " << ic.x[1].segment(3*i,3).transpose() << std::endl;
     }
     //std::cout << "Projectiles3D::Projectiles3D " << ic.x[0].segment(0,4).transpose() << std::endl;
   };
@@ -89,6 +89,7 @@ public:
       thisVel.norm();
       newAcc -= thisVel * (drag / mass[i]);
       acc.segment(3*i,3) = newAcc;
+      //std::cout << "time " << _time << " projectile " << i << " has vel " << vel.segment(3*i,3).transpose() << "\n";
     }
     return;
   }
@@ -103,9 +104,9 @@ public:
     std::cout << "'Exact' solution is from running " << maxSteps << " steps of RK4 at dt= " << dt << std::endl;
     for (int32_t i=0; i<maxSteps; ++i) {
       exact.stepForward(dt);
-      if (i%2000 == 0) std::cout << "    " << dt*i << "  " << exact.getPosition().segment(3,3).transpose() << std::endl;
+      //if (i%2000 == 0) std::cout << "    " << dt*i << "  " << exact.getPosition().segment(3,3).transpose() << std::endl;
     }
-    std::cout << "Exact positions:\n" << exact.getPosition() << std::endl;
+    //std::cout << "Exact positions:\n" << exact.getPosition() << std::endl;
     return exact.getPosition();
   }
 
@@ -129,8 +130,10 @@ public:
   }
 
   double getEndTime() {
-    return 5.0;
+    return 4.0;
   }
+
+  bool hasDamping(void) { return true; }
 
 private:
   // number of bodies

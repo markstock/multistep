@@ -31,6 +31,7 @@ public:
   virtual DynamicState<T> getInit(void) = 0;
 
   virtual bool hasAccel(void) = 0;
+  virtual bool hasDamping(void) = 0;
   virtual T getHighestDeriv(const T pos, const double time) = 0;
   virtual void setHighestDeriv(DynamicState<T>& state, const double time) = 0;
   virtual T getExact(const double time) = 0;
