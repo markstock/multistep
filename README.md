@@ -56,22 +56,26 @@ see [here](https://benchmarksgame-team.pages.debian.net/benchmarksgame/performan
 and [here](https://programming-language-benchmarks.vercel.app/problem/nbody).
 In that test, the five most massive bodies in the Solar System are simulated for 50,000 years using
 Euler (1st order) time steps of 1/100th year. The fastest programs complete the 5 million steps in about 0.3 seconds.
-In the case here, though, we run for only 100 years and vary the time step length.
-The error metric here uses final position, measured in AUs, and not energy (which, being an integral measure, is 
-easier to achieve). We find that taking 0.01 year Euler time steps results in very poor
-accuracy. To achieve even 0.1 AU mean positional error (which still means your probe will fail to intercept),
-we had to use time steps of 36 minutes, or about 14700x shorter than the CLG's problem specification.
-To get that same error (0.1 AU in final position), the Richardson-Verlet method needs to take
-a step only once every 8 months of simulation time, or 69x longer than in the CLG benchmark.
-This means that we can speed up the calculation - in theory - by a factor of 1 million, just
-by using a smarter method for time stepping.
+The positional error in the CLG's benchmark results is no doubt massive, on the order of 10 AU, even though
+that benchmark tracks only the energy error (which is much easier to maintain).
+Instead, we run for only 100 years and vary the time step length.
+To achieve even 0.1 AU mean positional error (which still means your probe will fail to intercept)
+over a 100 year span using Euler integration, we had to use time steps of 36 minutes, or about 14700x
+more time steps than the CLG's problem specification.
+To get that same error, the Richardson-Verlet method needs to take a step only once every *8 months* of
+simulation time, or 69x fewer steps than in the CLG benchmark.
+This means that we can maintain accuracy while speeding up the calculation by a factor of 1 million, just
+by using better numerical methods.
+Note that 1e-11 AU is 5 feet, achievable with Adams-Bashforth 5th order using time steps of 1 day,
+or 100 billion times more accurate than using the Euler method.
 
-Another important note is that in the program and the above plots, the multi*stage* (Runge-Kutta)
+An important note is that in the program and the above plots, the multi*stage* (Runge-Kutta)
 methods take 2x, 3x, and 4x longer time steps than the multi*step* methods.
 This is so that we can compare the error to the computational effort,
 as the Runge-Kutta methods perform more derivative evaluations per time *step*.
 This means that the x-axis in the above plots can be directly compared to
 computational effort.
+In some plots, the x is labelled correctly as "delta t per evaluation."
 
 ### Future work
 This is still a toy program, meant to test various forward integrators.
