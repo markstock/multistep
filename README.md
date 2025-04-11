@@ -49,6 +49,7 @@ if higher accuracy is required.
 ![Error vs. time step, harmonic oscillator](doc/spring_results.png)
 ![Error vs. time step, Lennard-Jones anharmonic oscillator](doc/lj_results.png)
 ![Error vs. time step, Solar system simulation](doc/grav3d_results.png)
+![Error vs. time step, Vortex particle method](doc/vort2d_results.png)
 
 Note that the 3D gravitational test is drawn directly from the Computer Language Game's nbody problem,
 see [here](https://benchmarksgame-team.pages.debian.net/benchmarksgame/performance/nbody.html)
@@ -86,7 +87,6 @@ In the future, I hope to do the following:
 * support systems which have forcing terms on derivatives other than the highest (like friction, which is proportional to velocity in a force system)
 * should calculation of the highest derivative come at the end of the current step or the beginning of the next one? The former would make for cleaner code.
 * add 10-th order Runge Kutta from here: https://sce.uhcl.edu/rungekutta/ (needs 17 stages)
-* add my ORCID to all github repo citations
 * add a jerk system, where the third time derivative is a function of the state
 * consider calculating the "true" solution in quad precision, or long double (80 bits)
 * can this architecture support implementing Richardson extrapolation by automatically creating a longer-time-step version?
@@ -103,6 +103,7 @@ I don't get paid for writing or maintaining this, so if you find this tool usefu
   author =       {Mark J.~Stock},
   title =        {Multistep:  Library for multistep and multistage integration of ODEs on vectors of numbers},
   howpublished = {\url{https://github.com/markstock/multistep}},
-  year =         {2022}
+  year =         {2022},
+  orcid =        {0000-0002-3494-8823}
 }
 ```
