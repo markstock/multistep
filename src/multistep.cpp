@@ -60,7 +60,10 @@ int main (int argc, char *argv[]) {
     "Ham418",	// 14 Hamming418
     "AB5"		// AB5+AM5
   };
+  // use numStages to scale the time steps when equivalentWork is true
+  const int32_t numStages[numInteg] = {1, 2, 2, 1, 1, 3, 3, 3, 1, 4, 4, 1, 1, 1, 1, 1};
 
+  bool equivalentWork = false;
   bool dumpevery = false;
   bool doRK = false;
   bool doAB = false;
@@ -106,6 +109,10 @@ int main (int argc, char *argv[]) {
       } else if (strncmp(argv[i], "-steps", 2) == 0) {
         onceMaxSteps = atoi(argv[++i]);
         onceThrough = true;
+      } else if (strncmp(argv[i], "-equiv", 3) == 0) {
+        equivalentWork = true;
+      } else if (strncmp(argv[i], "-noequiv", 4) == 0) {
+        equivalentWork = false;
       } else {
         // nothing?
       }
@@ -196,9 +203,10 @@ int main (int argc, char *argv[]) {
     // initialize integrators
     if (doInteg[0]) {
       Euler<TEMPLATEVAR> e(s,0);
-      for (int32_t i=0; i<maxSteps; ++i) {
-        //std::cout << "\nvalue is " << e.getPosition();
-        e.stepForward(dt);
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[0] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[0]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        e.stepForward(thisDt);
         if (dumpevery) std::cout << "e at t " << e.getTime() << " is " << e.getPosition() << "\n";
       }
       //TEMPLATEVAR eSolution = e.getPosition();
@@ -210,11 +218,11 @@ int main (int argc, char *argv[]) {
 
     if (doInteg[1]) {
       RK2Ralston<TEMPLATEVAR> r2(s,0);		// Ralston's is better for larger timesteps only
-      for (int32_t i=0; i<maxSteps; ++i) {
-        if (i%2 == 0) {
-          r2.stepForward(2.0*dt);
-          if (dumpevery) std::cout << "rk2r at t " << r2.getTime() << " is " << r2.getPosition() << "\n";
-        }
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[1] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[1]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        r2.stepForward(thisDt);
+        if (dumpevery) std::cout << "rk2r at t " << r2.getTime() << " is " << r2.getPosition() << "\n";
       }
       //TEMPLATEVAR r2Solution = r2.getPosition();
       //std::cout << "  RK2 solution: " << r2Solution << std::endl;
@@ -225,11 +233,11 @@ int main (int argc, char *argv[]) {
 
     if (doInteg[2]) {
       RK2Heun<TEMPLATEVAR> r2(s,0);
-      for (int32_t i=0; i<maxSteps; ++i) {
-        if (i%2 == 0) {
-          r2.stepForward(2.0*dt);
-          if (dumpevery) std::cout << "rk2h at t " << r2.getTime() << " is " << r2.getPosition() << "\n";
-        }
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[2] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[2]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        r2.stepForward(thisDt);
+        if (dumpevery) std::cout << "rk2h at t " << r2.getTime() << " is " << r2.getPosition() << "\n";
       }
       //TEMPLATEVAR r2Solution = r2.getPosition();
       //std::cout << "  RK2 solution: " << r2Solution << std::endl;
@@ -240,8 +248,10 @@ int main (int argc, char *argv[]) {
 
     if (doInteg[3]) {
       AB2<TEMPLATEVAR> a2(s,0,dt);
-      for (int32_t i=0; i<maxSteps; ++i) {
-        a2.stepForward(dt);
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[3] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[3]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        a2.stepForward(thisDt);
         if (dumpevery) std::cout << "ab2 at t " << a2.getTime() << " is " << a2.getPosition() << "\n";
       }
       //TEMPLATEVAR a2Solution = a2.getPosition();
@@ -252,8 +262,10 @@ int main (int argc, char *argv[]) {
 
     if (doInteg[4]) {
       Verlet<TEMPLATEVAR> ve(s,0,dt);
-      for (int32_t i=0; i<maxSteps; ++i) {
-        ve.stepForward(dt);
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[4] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[4]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        ve.stepForward(thisDt);
         if (dumpevery) std::cout << "ve at t " << ve.getTime() << " is " << ve.getPosition() << "\n";
       }
       //TEMPLATEVAR vSolution = ve.getPosition();
@@ -264,11 +276,11 @@ int main (int argc, char *argv[]) {
 
     if (doInteg[5]) {
       RK3Ralston<TEMPLATEVAR> r3(s,0);
-      for (int32_t i=0; i<maxSteps; ++i) {
-        if (i%3 == 0) {
-          r3.stepForward(3.0*dt);
-          if (dumpevery) std::cout << "rk3 at t " << r3.getTime() << " is " << r3.getPosition() << "\n";
-        }
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[5] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[5]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        r3.stepForward(thisDt);
+        if (dumpevery) std::cout << "rk3 at t " << r3.getTime() << " is " << r3.getPosition() << "\n";
       }
       //TEMPLATEVAR r3Solution = r3.getPosition();
       //std::cout << "  RK3 solution: " << r3Solution.segment(0,4).transpose() << std::endl;
@@ -278,11 +290,11 @@ int main (int argc, char *argv[]) {
 
     if (doInteg[6]) {
       RK3Heun<TEMPLATEVAR> r3(s,0);
-      for (int32_t i=0; i<maxSteps; ++i) {
-        if (i%3 == 0) {
-          r3.stepForward(3.0*dt);
-          if (dumpevery) std::cout << "rk3 at t " << r3.getTime() << " is " << r3.getPosition() << "\n";
-        }
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[6] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[6]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        r3.stepForward(thisDt);
+        if (dumpevery) std::cout << "rk3 at t " << r3.getTime() << " is " << r3.getPosition() << "\n";
       }
       //TEMPLATEVAR r3Solution = r3.getPosition();
       //std::cout << "  RK3 solution: " << r3Solution.segment(0,4).transpose() << std::endl;
@@ -292,11 +304,11 @@ int main (int argc, char *argv[]) {
 
     if (doInteg[7]) {
       RK3Kutta<TEMPLATEVAR> r3(s,0);
-      for (int32_t i=0; i<maxSteps; ++i) {
-        if (i%3 == 0) {
-          r3.stepForward(3.0*dt);
-          if (dumpevery) std::cout << "rk3 at t " << r3.getTime() << " is " << r3.getPosition() << "\n";
-        }
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[7] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[7]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        r3.stepForward(thisDt);
+        if (dumpevery) std::cout << "rk3 at t " << r3.getTime() << " is " << r3.getPosition() << "\n";
       }
       //TEMPLATEVAR r3Solution = r3.getPosition();
       //std::cout << "  RK3 solution: " << r3Solution.segment(0,4).transpose() << std::endl;
@@ -306,8 +318,10 @@ int main (int argc, char *argv[]) {
 
     if (doInteg[8]) {
       AB3<TEMPLATEVAR> a3(s,0,dt);
-      for (int32_t i=0; i<maxSteps; ++i) {
-        a3.stepForward(dt);
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[8] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[8]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        a3.stepForward(thisDt);
         if (dumpevery) std::cout << "ab3 at t " << a3.getTime() << " is " << a3.getPosition() << "\n";
       }
       //TEMPLATEVAR a3Solution = a3.getPosition();
@@ -318,11 +332,11 @@ int main (int argc, char *argv[]) {
 
     if (doInteg[9]) {
       RK4<TEMPLATEVAR> r4(s,0);
-      for (int32_t i=0; i<maxSteps; ++i) {
-        if (i%4 == 0) {
-          r4.stepForward(4.0*dt);
-          if (dumpevery) std::cout << "rk4 at t " << r4.getTime() << " is " << r4.getPosition() << "\n";
-        }
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[9] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[9]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        r4.stepForward(thisDt);
+        if (dumpevery) std::cout << "rk4 at t " << r4.getTime() << " is " << r4.getPosition() << "\n";
       }
       //TEMPLATEVAR r4Solution = r4.getPosition();
       //std::cout << "  RK4 solution: " << r4Solution.segment(0,4).transpose() << std::endl;
@@ -332,11 +346,11 @@ int main (int argc, char *argv[]) {
 
     if (doInteg[10]) {
       RK4ter<TEMPLATEVAR> r4(s,0);
-      for (int32_t i=0; i<maxSteps; ++i) {
-        if (i%4 == 0) {
-          r4.stepForward(4.0*dt);
-          if (dumpevery) std::cout << "rk4 at t " << r4.getTime() << " is " << r4.getPosition() << "\n";
-        }
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[10] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[10]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        r4.stepForward(thisDt);
+        if (dumpevery) std::cout << "rk4 at t " << r4.getTime() << " is " << r4.getPosition() << "\n";
       }
       //TEMPLATEVAR r4Solution = r4.getPosition();
       //std::cout << "  RK4 solution: " << r4Solution.segment(0,4).transpose() << std::endl;
@@ -346,8 +360,10 @@ int main (int argc, char *argv[]) {
 
     if (doInteg[11]) {
       AB4<TEMPLATEVAR> ab(s,0,dt);
-      for (int32_t i=0; i<maxSteps; ++i) {
-        ab.stepForward(dt);
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[11] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[11]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        ab.stepForward(thisDt);
         if (dumpevery) std::cout << "ab4 at t " << ab.getTime() << " is " << ab.getPosition() << "\n";
       }
       //TEMPLATEVAR abSolution = ab.getPosition();
@@ -358,8 +374,10 @@ int main (int argc, char *argv[]) {
 
     if (doInteg[12]) {
       RichardsonVerlet<TEMPLATEVAR> rv(s,0,dt);
-      for (int32_t i=0; i<maxSteps; ++i) {
-        rv.stepForward(dt);
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[12] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[12]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        rv.stepForward(thisDt);
         if (dumpevery) std::cout << "rv at t " << rv.getTime() << " is " << rv.getPosition() << "\n";
       }
       //TEMPLATEVAR rvSolution = rv.getPosition();
@@ -370,8 +388,10 @@ int main (int argc, char *argv[]) {
 
     if (doInteg[13]) {
       Hamming416<TEMPLATEVAR> h6(s,0,dt);
-      for (int32_t i=0; i<maxSteps; ++i) {
-        h6.stepForward(dt);
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[13] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[13]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        h6.stepForward(thisDt);
       }
       //templatevar h6solution = h6.getposition();
       std::cout << "\t" << h6.getError(exact);
@@ -379,8 +399,10 @@ int main (int argc, char *argv[]) {
 
     if (doInteg[14]) {
       Hamming418<TEMPLATEVAR> h8(s,0,dt);
-      for (int32_t i=0; i<maxSteps; ++i) {
-        h8.stepForward(dt);
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[14] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[14]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        h8.stepForward(thisDt);
       }
       //templatevar h8solution = h8.getposition();
       std::cout << "\t" << h8.getError(exact);
@@ -388,8 +410,10 @@ int main (int argc, char *argv[]) {
 
     if (doInteg[15]) {
       AB5<TEMPLATEVAR> abb(s,0,dt);
-      for (int32_t i=0; i<maxSteps; ++i) {
-        abb.stepForward(dt);
+      const int32_t thisSteps = equivalentWork ? maxSteps/numStages[15] : maxSteps;
+      const double  thisDt    = equivalentWork ? numStages[15]*dt       : dt;
+      for (int32_t i=0; i<thisSteps; ++i) {
+        abb.stepForward(thisDt);
         if (dumpevery) std::cout << "ab5 at t " << abb.getTime() << " is " << abb.getPosition() << "\n";
       }
       //templatevar abbsolution = abb.getposition();
