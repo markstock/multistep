@@ -51,11 +51,9 @@ public:
   void stepForward (const double _dt) {
     // assert that we have at least two states in the history
     //static_assert(s.size() >= 2, "State vector does not have enough entries");
-    // assert that this dt matches the previous dt
-    const int32_t numDerivs = this->g.getNumDerivs();
+    const int32_t nd = this->g.getNumDerivs();
 
     // ask the system to find its new highest-level derivative
-    //this->s[0].x[numDerivs] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
     this->g.setHighestDeriv(this->s[0]);
 
     // add a new state to the head
@@ -63,15 +61,11 @@ public:
     newHead.time += _dt;
     this->s.insert(this->s.begin(), newHead);
 
-    // perform forward integration: AB2 for first one down, AM2 for all others
-    this->s[0].x[numDerivs-1] = this->s[1].x[numDerivs-1] + 0.5 * _dt * (3.0*this->s[1].x[numDerivs] - this->s[2].x[numDerivs]);
-    for (int32_t deriv=numDerivs-1; deriv>0; deriv--) {
-      this->s[0].x[deriv-1] += 0.5 * _dt * (this->s[0].x[deriv] + this->s[1].x[deriv]);
+    // perform forward integration: AB2 for first one down, AM2 for all others (NOT AB3)
+    this->s[0].x[nd-1] = this->s[1].x[nd-1] + 0.5 * _dt * (3.0*this->s[1].x[nd] - this->s[2].x[nd]);
+    for (int32_t d=nd-1; d>0; d--) {
+      this->s[0].x[d-1] += 0.5 * _dt * (this->s[0].x[d] + this->s[1].x[d]);
     }
-
-    // perform forward integration: AB2 for velocity, AM2 for position
-    //this->s[0].x[1] = this->s[1].x[1] + 0.5 * _dt * (3.0*this->s[1].x[2] - this->s[2].x[2]);
-    //this->s[0].x[0] = this->s[1].x[0] + 0.5 * _dt * (this->s[0].x[1] + this->s[1].x[1]);
 
     // get rid of oldest state
     this->s.pop_back();
@@ -94,7 +88,6 @@ public:
     const int32_t nd = this->g.getNumDerivs();
 
     // ask the system to find its new highest-level derivative
-    //this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
     this->g.setHighestDeriv(this->s[0]);
 
     // add a new one to the head
@@ -104,8 +97,8 @@ public:
 
     // perform forward integration: AB3 for first, AM3 for all lower-order derivatives
     this->s[0].x[nd-1] += _dt * (23.0*this->s[1].x[nd] - 16.0*this->s[2].x[nd] + 5.0*this->s[3].x[nd]) / 12.0;
-    for (int32_t deriv=nd-1; deriv>0; deriv--) {
-      this->s[0].x[deriv-1] += _dt * (5.0*this->s[0].x[deriv] + 8.0*this->s[1].x[deriv] - this->s[2].x[deriv]) / 12.0;
+    for (int32_t d=nd-1; d>0; d--) {
+      this->s[0].x[d-1] += _dt * (5.0*this->s[0].x[d] + 8.0*this->s[1].x[d] - this->s[2].x[d]) / 12.0;
     }
 
     // get rid of oldest state
@@ -129,7 +122,6 @@ public:
     const int32_t nd = this->g.getNumDerivs();
 
     // ask the system to find its new highest-level derivative
-    //this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
     this->g.setHighestDeriv(this->s[0]);
 
     // add a new one to the head
@@ -139,13 +131,9 @@ public:
 
     // perform forward integration: AB4 for first, AM4 for all lower-order derivatives
     this->s[0].x[nd-1] += _dt * (55.0*this->s[1].x[nd] - 59.0*this->s[2].x[nd] + 37.0*this->s[3].x[nd] - 9.0*this->s[4].x[nd]) / 24.0;
-    for (int32_t deriv=nd-1; deriv>0; deriv--) {
-      this->s[0].x[deriv-1] += _dt * (9.0*this->s[0].x[deriv] + 19.0*this->s[1].x[deriv] - 5.0*this->s[2].x[deriv] + this->s[3].x[deriv]) / 24.0;
+    for (int32_t d=nd-1; d>0; d--) {
+      this->s[0].x[d-1] += _dt * (9.0*this->s[0].x[d] + 19.0*this->s[1].x[d] - 5.0*this->s[2].x[d] + this->s[3].x[d]) / 24.0;
     }
-
-    // perform forward integration: AB4 for velocity, AM4 for position
-    //this->s[0].x[1] = this->s[1].x[1] +  _dt * (55.0*this->s[1].x[2] - 59.0*this->s[2].x[2] + 37.0*this->s[3].x[2] - 9.0*this->s[4].x[2]) / 24.0;
-    //this->s[0].x[0] = this->s[1].x[0] +  _dt * (9.0*this->s[0].x[1] + 19.0*this->s[1].x[1] - 5.0*this->s[2].x[1] + this->s[3].x[1]) / 24.0;
 
     // get rid of oldest
     this->s.pop_back();
@@ -168,7 +156,6 @@ public:
     const int32_t nd = this->g.getNumDerivs();
 
     // ask the system to find its new highest-level derivative
-    //this->s[0].x[nd] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
     this->g.setHighestDeriv(this->s[0]);
 
     // add a new one to the head
@@ -178,13 +165,9 @@ public:
 
     // perform forward integration: AB5 for first, AM5 for all lower-order derivatives
     this->s[0].x[nd-1] += _dt * (1901.0*this->s[1].x[nd] - 2774.0*this->s[2].x[nd] + 2616.0*this->s[3].x[nd] - 1274.0*this->s[4].x[nd] + 251.0*this->s[5].x[nd]) / 720.0;
-    for (int32_t deriv=nd-1; deriv>0; deriv--) {
-      this->s[0].x[deriv-1] += _dt * (251.0*this->s[0].x[deriv] + 646.0*this->s[1].x[deriv] - 264.0*this->s[2].x[deriv] + 106.0*this->s[3].x[deriv] - 19.0*this->s[4].x[deriv]) / 720.0;
+    for (int32_t d=nd-1; d>0; d--) {
+      this->s[0].x[d-1] += _dt * (251.0*this->s[0].x[d] + 646.0*this->s[1].x[d] - 264.0*this->s[2].x[d] + 106.0*this->s[3].x[d] - 19.0*this->s[4].x[d]) / 720.0;
     }
-
-    // perform forward integration: AB5 for velocity, AM5 for position
-    //this->s[0].x[1] = this->s[1].x[1] +  _dt * (1901.0*this->s[1].x[2] - 2774.0*this->s[2].x[2] + 2616.0*this->s[3].x[2] - 1274.0*this->s[4].x[2] + 251.0*this->s[5].x[2]) / 720.0;
-    //this->s[0].x[0] = this->s[1].x[0] +  _dt * (251.0*this->s[0].x[1] + 646.0*this->s[1].x[1] - 264.0*this->s[2].x[1] + 106.0*this->s[3].x[1] - 19.0*this->s[4].x[1]) / 720.0;
 
     // get rid of oldest
     this->s.pop_back();
@@ -209,7 +192,6 @@ public:
     assert(this->g.hasAccel() && "Verlet cannot integrate a VelocitySystem");
 
     // ask the system to find its new highest-level derivative
-    //this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
     this->g.setHighestDeriv(this->s[0]);
 
     // add a new one to the head
@@ -245,7 +227,6 @@ public:
     assert(this->g.hasAccel() && "RichardsonVerlet cannot integrate a VelocitySystem");
 
     // ask the system to find its new highest-level derivative
-    //this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
     this->g.setHighestDeriv(this->s[0]);
 
     // add a new one to the head
@@ -287,7 +268,6 @@ public:
     assert(this->g.hasAccel() && "Hamming416 cannot integrate a VelocitySystem");
 
     // ask the system to find its new highest-level derivative
-    //this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
     this->g.setHighestDeriv(this->s[0]);
 
     // add a new one to the head
@@ -326,7 +306,6 @@ public:
     assert(this->g.hasAccel() && "Hamming418 cannot integrate a VelocitySystem");
 
     // ask the system to find its new highest-level derivative
-    //this->s[0].x[2] = this->g.getHighestDeriv(this->s[0].x[0], this->getTime());
     this->g.setHighestDeriv(this->s[0]);
 
     // add a new one to the head
