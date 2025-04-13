@@ -42,11 +42,11 @@ Compile and run multistep with the following commands on an RPM-based system:
 The command-line options are
 
 	-all		Run and report on all integrators
-	-rk			Run all Runge-Kutta integrators
+	-rk		Run all Runge-Kutta integrators
 	-rk2		Run 2nd order R-K integrators
 	-rk3		Run 3rd order R-K integrators
 	-rk4		Run 4th order R-K integrators
-	-ab			Run all Adams-Bashforth + Adams-Moulton integrators
+	-ab		Run all Adams-Bashforth + Adams-Moulton integrators
 	-eul		Run Euler integrator
 	-equiv		Penalize multi-stage integrators to allow an equal-work comparison
 	-steps N	Instead of performing a sweep of time step counts, run integrators over N steps
