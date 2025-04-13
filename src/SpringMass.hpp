@@ -53,7 +53,6 @@ public:
     return;
   }
 
-
   // just return theoretical exact position at the given time
   Eigen::ArrayXd getExact(const double _endtime) {
     return Eigen::sin(2.0*M_PI*_endtime/period);
