@@ -67,6 +67,8 @@ int main (int argc, char *argv[]) {
   bool doHam = false;
   bool doVer = false;
   bool doInteg[numInteg] = {false};
+  int32_t onceMaxSteps = 60;
+  bool onceThrough = false;
 
   // parse command-line arguments
   // input file can appear anywhere
@@ -99,6 +101,11 @@ int main (int argc, char *argv[]) {
         doVer = true;
       } else if (strncmp(argv[i], "-ham", 4) == 0) {
         doHam = true;
+      } else if (strncmp(argv[i], "-eul", 4) == 0) {
+        doInteg[0] = true;
+      } else if (strncmp(argv[i], "-steps", 2) == 0) {
+        onceMaxSteps = atoi(argv[++i]);
+        onceThrough = true;
       } else {
         // nothing?
       }
@@ -111,9 +118,9 @@ int main (int argc, char *argv[]) {
   //AccelerationSine s(10.0/1.25);
   //AccelerationSine s(2.0*M_PI);
   //AccelerationSine s(40.0);
-  //SpringMass s(100,10.0/9.25);
+  SpringMass s(100,10.0/9.25);
   //LennardJones s(100,1.0,0.02);
-  NBodyGrav3D s(5);
+  //NBodyGrav3D s(5);
   //NBodyGrav3D s(7);
   //NBodyVort2D s(32);
   //Projectiles3D s(64);
@@ -178,6 +185,8 @@ int main (int argc, char *argv[]) {
   // ensure that maxsteps is divisible by 12 (to accommodate RK 2,3,4)
   //for (int32_t maxSteps = 60; maxSteps < 2000000; maxSteps = 12*(int)(maxSteps*1.3/12.0)) {
   for (int32_t maxSteps = 60; maxSteps < 130000; maxSteps = 12*(int)(maxSteps*1.3/12.0)) {
+
+    if (onceThrough) maxSteps = onceMaxSteps;
 
     const double dt = endtime / maxSteps;
     if (dumpevery) std::cout << "Running " << maxSteps << " steps at dt= " << dt << std::endl;
@@ -322,7 +331,7 @@ int main (int argc, char *argv[]) {
     }
 
     if (doInteg[10]) {
-      RK4<TEMPLATEVAR> r4(s,0);
+      RK4ter<TEMPLATEVAR> r4(s,0);
       for (int32_t i=0; i<maxSteps; ++i) {
         if (i%4 == 0) {
           r4.stepForward(4.0*dt);
@@ -388,6 +397,7 @@ int main (int argc, char *argv[]) {
     }
 
     std::cout << std::endl;
+    if (onceThrough) break;
   }
 
   exit(0);
