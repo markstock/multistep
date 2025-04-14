@@ -10,9 +10,9 @@ Euler,
 [Runge-Kutta](https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods) 2nd (two types),
 3rd (three tpyes),
 and 4th order (two types),
-[Adams-Bashforth](https://en.wikipedia.org/wiki/Linear_multistep_method) 2nd and 4th and 5th order,
+[Adams-Bashforth](https://en.wikipedia.org/wiki/Linear_multistep_method) 2nd to 5th order,
 [Standard Verlet](https://en.wikipedia.org/wiki/Verlet_integration),
-a higher-order Richardson-Verlet, and a method from Hamming's "Numerical Methods for
+a higher-order Richardson-Verlet, and two methods from Hamming's "Numerical Methods for
 Scientists and Engineers."
 
 The Richardson-Verlet integrator may appear here for the first time.
@@ -90,22 +90,19 @@ as the Runge-Kutta methods perform more derivative evaluations per time *step*.
 This means that the x-axis in the above plots can be directly compared to
 computational effort.
 In some plots, the x is labelled correctly as "delta t per evaluation."
+Use the command-line options `-equiv` and `-noequiv` to toggle this shift.
 
 ### Future work
 This is still a toy program, meant to test various forward integrators.
 In the future, I hope to do the following:
 
-* refactor to allow more RK3 and RK4 methods, and treat them correctly
 * try a Kahan-summation-like scheme for reducing the roundoff error of the Richardson-Verlet method (add a few flops to account for roundoff)
 * add another system with friction: damped and forced oscillator (to SpringMass)
 * build a linkable library and use that to generate executables
-* add Bulirsch-Stoer integrator, any others? Gear? RK10?
+* add Bulirsch-Stoer integrator, any others? Gear? [RK10](https://sce.uhcl.edu/rungekutta/)
 * include integrators with automatic time step adjustment (global first)
-* develop integrator with local (element-wise) time-stepping (different repository: adapDt)
-* support systems which have forcing terms on derivatives other than the highest (like friction, which is proportional to velocity in a force system)
-* should calculation of the highest derivative come at the end of the current step or the beginning of the next one? The former would make for cleaner code.
-* add 10-th order Runge Kutta from here: https://sce.uhcl.edu/rungekutta/ (needs 17 stages)
-* add a jerk system, where the third time derivative is a function of the state
+* develop integrator with local (element-wise) time-stepping: that's in another repository: [adapDt](https://github.com/markstock/adapDt)
+* add a [jerk system](https://en.wikipedia.org/wiki/Jerk_(physics)), where the third time derivative is a function of the state
 * consider calculating the "true" solution in quad precision, or long double (80 bits)
 * can this architecture support implementing Richardson extrapolation by automatically creating a longer-time-step version?
 
