@@ -125,7 +125,8 @@ int main (int argc, char *argv[]) {
   //AccelerationSine s(10.0/1.25);
   //AccelerationSine s(2.0*M_PI);
   //AccelerationSine s(40.0);
-  SpringMass s(100,10.0/9.25);
+  //SpringMass s(100,10.0/9.25);
+  SpringMassDamper s(64,1.0);
   //LennardJones s(100,1.0,0.02);
   //NBodyGrav3D s(5);
   //NBodyGrav3D s(7);
@@ -172,6 +173,18 @@ int main (int argc, char *argv[]) {
     doInteg[14] = true;
   }
 
+  // are any integrators turned on? If not, select a few good ones
+  bool anyInteg = false;
+  for (int32_t i=0; i<numInteg; ++i) anyInteg = anyInteg or doInteg[i];
+  if (not anyInteg) {
+    doInteg[0] = true;	// Euler
+    doInteg[1] = true;	// RK2 Ralston
+    doInteg[5] = true;	// RK3 Ralston
+    doInteg[9] = true;	// RK4 Classic
+    doInteg[3] = true;	// AB2+AM2
+    doInteg[8] = true;	// AB3+AM3
+    doInteg[11] = true;	// AB4+AM4
+  }
 
   // each system has its own end time
   double endtime = s.getEndTime();
@@ -179,7 +192,8 @@ int main (int argc, char *argv[]) {
   // find the "exact" solution and save it for reuse
   TEMPLATEVAR exact = s.getExact(endtime);
 
-  std::cout << "steps\t";
+  if (equivalentWork) std::cout << "evals\t";
+  else std::cout << "steps\t";
   for (int32_t i=0; i<numInteg; ++i) {
     if (doInteg[i]) std::cout << integ[i] << "\t\t";
   }
